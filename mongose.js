@@ -12,7 +12,7 @@ const ProductSchema = new mongoose.Schema({
   category: String,
 });
 
-//save operation or add data in database
+//save operation or add data in database(model)
 const saveInDb = async () => {
   const ProductsModel = mongoose.model("products", ProductSchema);
 
