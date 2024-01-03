@@ -24,8 +24,6 @@ connect.connect((err) => {
   }
 });
 
-
-
 connect.query("select * from users", (err, result) => {
   console.warn("result", result);
 });

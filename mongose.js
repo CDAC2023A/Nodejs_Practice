@@ -21,7 +21,7 @@ const saveInDb = async () => {
     brand: "samsung",
     price: 60000,
     category: "mobile",
-    battery: 5000,  /// this data not ti added in database because in schema its not declared.
+    battery: 5000,  /// this data not  added in database because in schema its not declared.
   });
   let result = await data.save();
   console.log(result);
