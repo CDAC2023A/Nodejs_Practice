@@ -3,19 +3,20 @@ require("./database.js");
 const jwt = require("jsonwebtoken");
 const {
   loginauthorize,
-  authorizationdata,
+  generateToken,
   verifyToken,
   updateData,
+  tokenData,
   verifyTokenput,
   daleteData,
   createData,
   Showdata
-} = require("./interface.js");
-const secreatKey = "secretkey";
+} = require("./authmiddleware.js");
+const secretKey = "secretkey";
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const expiresIn = process.env.JWT_EXPIRY_TIME || "500s";
+
 
 
 
@@ -32,34 +33,25 @@ app.post("/users/create", createData,async (req, resp) => {
 
 
 //Login Users
-app.post("/users/login", [loginauthorize], async (req, resp) => {
-  jwt.sign({ authorizationdata }, secreatKey, { expiresIn }, (err, token) => {
-    if (err) {
-      console.error("Error generating token:", err);
-      resp.status(500).json({ error: "Internal Server Error" });
-    } else {
-      resp.json({ token });
-    }
-    const user = usersData[0];
-    console.log(user);
-  });
+app.post("/users/login", [loginauthorize,generateToken], async (req, resp) => {
 });
 
+
 //update
-app.put("/users/update/:_id", updateData, (req, resp) => {
-  jwt.verify(req.token, secreatKey, (err, authData) => {
-    if (err) {
-      console.error("Error generating token:", err);
-      resp.status(500).json({ error: "Internal Server Error" });
-    } else {
-      resp.json({ token });
-    }
-  });
+app.put("/users/update/:_id", updateData,verifyTokenput, (req, resp) => {
+  // jwt.verify(req.token, secretKey, (err, authData) => {
+  //   if (err) {
+  //     console.error("Error generating token:", err);
+  //     resp.status(500).json({ error: "Internal Server Error" });
+  //   } else {
+  //     resp.json({ token });
+  //   }
+  // });
 });
 
 //delete
-app.delete("/users/delete/:_id",daleteData,verifyTokenput, async (req, resp) => {
-  jwt.verify(req.token, secreatKey, (err, authData) => {
+app.delete("/users/delete/:_id",daleteData, async (req, resp) => {
+  jwt.verify(req.token, secretKey, (err, authData) => {
     if (err) {
       console.error("Error generating token:", err);
       resp.status(500).json({ error: "Internal Server Error" });
