@@ -1,4 +1,6 @@
 const studentModel = require('./studentModel');
+const generateToken= require('./studentjwtToken')
+const jwt = require('jsonwebtoken');
 var key='123456789trytryrtyr';
 const encryptor = require('simple-encryptor')(key);
 
@@ -32,6 +34,15 @@ const loginuserDBService = async (studentDetails) => {
         const decrypted = encryptor.decrypt(result.password);
 
         if (decrypted === studentDetails.password) {
+            // Generate JWT token with additional data
+            const token = jwt.sign({
+                email: result.email,
+                firstname: result.firstname,
+                lastname: result.lastname,
+                // Add more fields as needed
+            }, key, { expiresIn: '1h' });
+            console.log(token);
+          
             return { status: true, msg: "Student Validated Successfully" };
         } else {
             throw { status: false, msg: "Student Validation Failed" };

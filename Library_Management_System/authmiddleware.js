@@ -23,6 +23,7 @@ const ProductSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("users", ProductSchema);
+
 const ProductsModel = mongoose.model("users", ProductSchema);
 
 //Data list
@@ -56,21 +57,21 @@ async function loginauthorize(req, resp, next) {
 }
 
 //generate token 
-async function generateToken(req,resp,next){
-  jwt.sign({ tokenData }, secretKey, { expiresIn }, (err, token) => {
-    if (err) {
-      console.error("Error generating token:", err);
-      resp.status(500).json({ error: "Internal Server Error" });
-    } else {
-      resp.json({ token });
-    }
-    tokenValue=tokenData[0];
-      console.log(tokenValue);
-    // const user = usersData[0];
-    // console.log(user);
-  });
-  next();
-}
+  async function generateToken(req,resp,next){
+    jwt.sign({ tokenData }, secretKey, { expiresIn }, (err, token) => {
+      if (err) {
+        console.error("Error generating token:", err);
+        resp.status(500).json({ error: "Internal Server Error" });
+      } else {
+        resp.json({ token });
+      }
+      tokenValue=tokenData[0];
+        console.log(tokenValue);
+      // const user = usersData[0];
+      // console.log(user);
+    });
+    next();
+  }
 
 
 
@@ -184,20 +185,21 @@ function verifyToken(req, resp, next) {
 }
 
 //Verification token for put method
-function verifyTokenput(req, resp, next) {
-  const token = req.headers.authorization;
-  if (!token) {
-    return resp.status(401).json({ error: "Unauthorized" });
-  }
-  jwt.verify(token, secretKey, (err, authData) => {
-    if (err) {
-      console.error("Error verifying token:", token);
-      return resp.status(403).json({ error: "Forbidden" });
-    }
-    req.userId = authData._id; // Assuming user ID is stored in the token
-    next();
-  });
-}
+// function verifyTokenput(req, resp, next) {
+//   const token = req.headers.authorization;
+//   console.log(token);
+//   if (!token) {
+//     return resp.status(401).json({ error: "Unauthorized" });
+//   }
+//   jwt.verify(token, secretKey, (err, authData) => {
+//     if (err) {
+//       console.error("Error verifying token:", token);
+//       return resp.status(403).json({ error: "Forbidden" });
+//     }
+//     req.userId = authData._id; // Assuming user ID is stored in the token
+//     next();
+//   });
+// }
 
 module.exports = {
   loginauthorize,
@@ -205,7 +207,6 @@ module.exports = {
   authorizationdata,
   verifyToken,
   updateData,
-  verifyTokenput,
   daleteData,
   createData,
   Showdata,

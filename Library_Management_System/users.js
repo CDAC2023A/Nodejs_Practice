@@ -6,8 +6,6 @@ const {
   generateToken,
   verifyToken,
   updateData,
-  tokenData,
-  verifyTokenput,
   daleteData,
   createData,
   Showdata
@@ -22,15 +20,12 @@ app.use(express.json());
 
 //Read the data
 app.get("/users/list", Showdata,async (req, resp) => {
-  console.log("getting data....");
-   
+  console.log("getting data....");  
 });
-
 
 //Create data
 app.post("/users/create", createData,async (req, resp) => {
 });
-
 
 //Login Users
 app.post("/users/login", [loginauthorize,generateToken], async (req, resp) => {
@@ -38,28 +33,11 @@ app.post("/users/login", [loginauthorize,generateToken], async (req, resp) => {
 
 
 //update
-app.put("/users/update/:_id", updateData,verifyTokenput, (req, resp) => {
-  // jwt.verify(req.token, secretKey, (err, authData) => {
-  //   if (err) {
-  //     console.error("Error generating token:", err);
-  //     resp.status(500).json({ error: "Internal Server Error" });
-  //   } else {
-  //     resp.json({ token });
-  //   }
-  // });
+app.put("/users/update/:_id", updateData,verifyToken, (req, resp) => {
 });
 
 //delete
-app.delete("/users/delete/:_id",daleteData, async (req, resp) => {
-  jwt.verify(req.token, secretKey, (err, authData) => {
-    if (err) {
-      console.error("Error generating token:", err);
-      resp.status(500).json({ error: "Internal Server Error" });
-    } else {
-      resp.json({ token });
-    }
-  });
-
+app.delete("/users/delete/:_id",daleteData,verifyToken, async (req, resp) => {
 });
 
 
