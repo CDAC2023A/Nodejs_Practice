@@ -25,9 +25,7 @@ app.get("/users/list", Showdata,async (req, resp) => {
   console.log("getting data....");
    
 });
-
-
-//Create data
+//Create data  hhhhhhhh
 app.post("/users/create", createData,async (req, resp) => {
 });
 
