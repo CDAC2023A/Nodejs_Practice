@@ -71,11 +71,6 @@ async function generateToken(req,resp,next){
   });
   next();
 }
-
-
-
-
-
 //Update data
 async function updateData(req, resp, next) {
   const filter = { _id: req.params._id };

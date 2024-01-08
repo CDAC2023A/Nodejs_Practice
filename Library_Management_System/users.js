@@ -43,7 +43,7 @@ app.put("/users/update/:_id", updateData,verifyTokenput, (req, resp) => {
   //   if (err) {
   //     console.error("Error generating token:", err);
   //     resp.status(500).json({ error: "Internal Server Error" });
-  //   } else {
+  //   } else { 
   //     resp.json({ token });
   //   }
   // });
