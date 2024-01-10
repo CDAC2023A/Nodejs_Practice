@@ -1,13 +1,14 @@
 const Users = require("../models/usersModel");
-let tokenData = [];
-const { tokenValue } = require("../tokenMiddleware/jwtToken");
+const tokenManager = require("../tokenMiddleware/tokenManager");
+const jwt = require("jsonwebtoken");
+const secretKey = "12764secretkey";
 const bcrypt = require("bcrypt");
-
+var DataFilter = {};
+var userData = [];
 module.exports = {
-
-  //Create a new data  
+  //Create a new data
   createData: async (req, resp, next) => {
-    const { email, phone, password, role, gender, dob, name  } = req.body;
+    const { email, phone, password, role, gender, dob, name } = req.body;
 
     try {
       // Check if the email or phone already exists
@@ -20,13 +21,13 @@ module.exports = {
       }
 
       // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10); 
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       // Create a new user if not already exists with the encrypted password
       const data = await Users.create({
         email,
         phone,
-        password: hashedPassword,
+        password,
         role,
         gender,
         dob,
@@ -66,7 +67,9 @@ module.exports = {
 
       if (user) {
         // Compare hashed password from the request with the stored hashed password
-        const passwordMatch = await bcrypt.compare(password, user.password);
+        // const passwordMatch = await bcrypt.compare(password, user.password);
+        const passwordMatch = password === user.password;
+
         if (passwordMatch) {
           // Authentication successful
           req.userData = {
@@ -75,23 +78,15 @@ module.exports = {
             role: user.role,
             email: user.email,
           };
-
-          // Exclude password and push user data to tokenData
-          tokenData.push({
+          userData.push({
             id: user._id.toString(),
             name: user.name,
             role: user.role,
             email: user.email,
           });
-          console.log(tokenData);
-          // Assign user data to DataFilter without the password
-          DataFilter = {
-            id: user._id.toString(),
-            name: user.name,
-            role: user.role,
-            email: user.email,
-          };
-
+          tokenManager.addUserData(userData);
+          const data = tokenManager.getUserData();
+          console.log(data);
           next();
         } else {
           resp.status(401).send("Unauthorized: Incorrect password");
@@ -103,7 +98,6 @@ module.exports = {
       console.error("Error during login:", error);
       resp.status(500).json({ message: "Internal server error" });
     }
-    module.exports.tokenData = tokenData;
   },
 
   //Update data
@@ -124,61 +118,71 @@ module.exports = {
   deleteData: async (req, resp, next) => {
     const filter = { _id: req.params._id };
     console.log(DataFilter);
+    try {
+      // Extract user data from the token
+      const token = req.headers.authorization.split(" ")[1];
+      const decodedToken = jwt.verify(token, secretKey);
+      const data = decodedToken.userData[0][0];
+      console.log(data);
 
-    // admin login
-    if (tokenValue.role === "admin" && tokenValue.id !== req.params._id) {
-      let data = await Users.deleteOne(filter);
-      if (data.deletedCount === 1) {
-        resp.json({ message: "Data deleted successfully Admin ", data });
-      } else if (data.deletedCount === 0) {
-        resp.json({ message: "No Id present Admin" });
-      } else {
-        resp.json({ message: "No" });
-      }
-    }
-
-    // librarian login
-    else if (tokenValue.role === "librarian") {
-      const usersList = await Users.find();
-      const lidata = usersList.find(
-        (user) => user._id.toString() === req.params._id
-      );
-      console.log(lidata);
-
-      if (lidata.role === "student") {
+      // admin login
+      if (data.role === "admin" && data.id !== req.params._id) {
         let data = await Users.deleteOne(filter);
-        if (data.acknowledged) {
-          resp.json({ message: "Data deleted successfully", data });
+        if (data.deletedCount === 1) {
+          resp.json({ message: "Data deleted successfully Admin ", data });
+        } else if (data.deletedCount === 0) {
+          resp.json({ message: "No Id present Admin" });
         } else {
-          resp.json({ message: "No Id present" });
+          resp.json({ message: "No" });
+        }
+      }
+
+      // librarian login
+      else if (data.role === "librarian") {
+        const usersList = await Users.find();
+        const lidata = usersList.find(
+          (user) => user._id.toString() === req.params._id
+        );
+
+        if (lidata.role === "student") {
+          let data = await Users.deleteOne(filter);
+          if (data.acknowledged) {
+            resp.json({ message: "Data deleted successfully", data });
+          } else {
+            resp.json({ message: "No Id present" });
+          }
+        } else {
+          resp.send("Librarian cannot delete admin");
+        }
+      }
+      //Student login
+      else if (data.role === "student") {
+        const usersList = await Users.find();
+        const studata = usersList.find(
+          (user) => user._id.toString() === req.params._id
+        );
+        // console.log(studata);
+        if (
+          studata.role === "admin" ||
+          studata.role === "student" ||
+          studata.role === "librarian"
+        ) {
+          resp
+            .status(401)
+            .json({ message: "Records will be deleted by admin only" });
+        } else {
+          console.log("Check details");
         }
       } else {
-        resp.send("Librarian cannot delete admin");
-      }
-    }
-    //Student login
-    else if (tokenValue.role === "student") {
-      const usersList = await Users.find();
-      const studata = usersList.find(
-        (user) => user._id.toString() === req.params._id
-      );
-      console.log(studata);
-      if (
-        studata.role === "admin" ||
-        studata.role === "student" ||
-        studata.role === "librarian"
-      ) {
         resp
-          .status(400)
+          .status(402)
           .json({ message: "Records will be deleted by admin only" });
-      } else {
-        console.log("Check details");
       }
-    } else {
-      resp
-        .status(400)
-        .json({ message: "Records will be deleted by admin only" });
-    }
-    next();
-  },
+      next();
+    } catch (error) {
+      // Handle authentication errors
+      console.error("Authentication error:", error);
+      resp.status(401).json({ error: "Unauthorized" });
+      }
+    },
 };

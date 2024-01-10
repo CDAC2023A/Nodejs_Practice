@@ -5,13 +5,14 @@ const router= new express.Router;
 const Category= require('../controllers/categoryController')
 const Book= require('../controllers/bookController')
 const Users=require('../controllers/usersController')
-const JwtToken=require('../tokenMiddleware/jwtToken')
+const JwtToken=require('../tokenMiddleware/jwtToken');
+
 
 
 router.post('/category/create',Category.create,JwtToken.verifyToken);
 router.get('/category/list',Category.categorylist);
-// router.post('/book/create',Book.create);
-// router.post('/book/populate',Book.categoryByBook);
+router.put('/category/update/:_id',Category.updateData,JwtToken.verifyToken);
+router.delete('/category/delete/:_id',Category.deleteData,JwtToken.verifyToken);
 
 
 router.post("/users/create",Users.createData)
