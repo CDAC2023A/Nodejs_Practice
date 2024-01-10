@@ -16,8 +16,6 @@ module.exports = {
       }
       tokenValue = tokenData[0];
       console.log(tokenValue);
-      // const user = usersData[0];
-      // console.log(user);
       module.exports.tokenValue=tokenValue;
     });
     next();

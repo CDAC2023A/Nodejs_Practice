@@ -33,7 +33,7 @@ async function Showdata(req, resp, next) {
   next();
 }
 
-///Login authorization middleware
+//Login authorization middleware
 async function loginauthorize(req, resp, next) {
   const { email, password } = req.query;
   const data = await ProductsModel.find();
