@@ -1,8 +1,9 @@
 const Users = require("../models/usersModel");
 const tokenManager = require("../tokenMiddleware/tokenManager");
-const jwt = require("jsonwebtoken");
-const secretKey = "12764secretkey";
 const bcrypt = require("bcrypt");
+const { extractUserData } = require("../tokenMiddleware/jwtToken");
+const Category = require("../models/categoryModel");
+const IssuedBook = require("../models/issueBookModel");
 var DataFilter = {};
 var userData = [];
 module.exports = {
@@ -120,10 +121,7 @@ module.exports = {
     console.log(DataFilter);
     try {
       // Extract user data from the token
-      const token = req.headers.authorization.split(" ")[1];
-      const decodedToken = jwt.verify(token, secretKey);
-      const data = decodedToken.userData[0][0];
-      console.log(data);
+      const data = extractUserData(req);
 
       // admin login
       if (data.role === "admin" && data.id !== req.params._id) {
@@ -183,6 +181,67 @@ module.exports = {
       // Handle authentication errors
       console.error("Authentication error:", error);
       resp.status(401).json({ error: "Unauthorized" });
+    }
+  },
+
+  //Issue book
+  issueBook: async (req, resp, next) => {
+    const { _idcategory, _idbook, _idstudent } = req.params;
+    try {
+      // Extract user data
+      const userData = extractUserData(req);
+      console.log(userData);
+
+      // Check if the user is a librarian
+      if (userData.role === "librarian") {
+        // Check if the category exists
+        const category = await Category.findOne({ _id: _idcategory });
+        if (!category) {
+          return resp.status(404).json({ message: "CategoryId not found" });
+        }
+
+        // Find the book within the category
+        const bookid = await category.books.find((b) => b.id === _idbook);
+        console.log(bookid);
+        if (bookid) {
+          // Create an IssuedBook entry
+          let payload = {
+            bookId: _idbook,
+           // bookName:bookid.name,
+            categoryId: _idcategory,
+            // categoryName:category.name,
+            studentid: _idstudent,
+            librarian: userData.id,
+            issueDate: new Date(),
+            dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+          };
+          // Due date is set to 5 days from now
+          const issuedBook = new IssuedBook(payload);
+          await Promise.all([issuedBook.save()]);
+          resp.json({ message: "Book issued successfully", issuedBook });
+
+          // Find the book within the category
+          const bookIndex = category.books.findIndex((b) => b.id === _idbook);
+          console.log(bookIndex);
+          if (bookIndex !== -1) {
+            // Remove the book from the category
+            category.books.splice(bookIndex, 1);
+
+            // Save the updated category
+            await category.save();
+          }
+        } else {
+          return resp
+            .status(404)
+            .json({ message: "Book not found in the specified category" });
+        }
+      } else {
+        resp.status(403).json({ message: "Only librarians can issue books" });
       }
-    },
+    } catch (error) {
+      console.error("Error issuing book:", error);
+      resp.status(500).json({ error: "Internal Server Error" });
+    }
+    next();
+  },
 };

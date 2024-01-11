@@ -1,14 +1,12 @@
 const Category = require("../models/categoryModel");
 const { extractUserData } = require("../tokenMiddleware/jwtToken");
-const jwt = require("jsonwebtoken");
-const secretKey = "12764secretkey";
+
 module.exports = {
+
+  //create the categoryand list of book
   create: async (req, resp) => {
     try {
-      const token = req.headers.authorization.split(" ")[1];
-      const decodedToken = jwt.verify(token, secretKey);
-      const data = decodedToken.userData[0][0];
-      console.log(data);
+      const userData = extractUserData(req);
 
       // Check if the category name already exists (case-insensitive)
       const existingCategory = await Category.findOne({
@@ -19,7 +17,7 @@ module.exports = {
         // Category already exists, send a response indicating that
         return resp.status(400).send("Category already exists");
       }
-      if (data.role === "admin") {
+      if (userData.role === "admin") {
         // If the category doesn't exist, create a new one
         const newCategory = await Category.create({
           name: req.body.name,
@@ -70,13 +68,11 @@ module.exports = {
     try {
       const filter = { _id: req.params._id }; //categoryId
 
-      const token = req.headers.authorization.split(" ")[1];
-      const decodedToken = jwt.verify(token, secretKey);
-      const tokdata = decodedToken.userData[0][0];
+      const userData = extractUserData(req);
 
       let data;
 
-      if (tokdata.role === "admin") {
+      if (userData.role === "admin") {
         data = await Category.updateOne(filter, { $set: req.body });
         console.log(data);
 
@@ -96,6 +92,8 @@ module.exports = {
       resp.status(500).json({ error: "Internal Server Error" });
     }
   },
+
+  //delete 
   deleteData: async (req, resp, next) => {
     const filter = { _id: req.params._id };
     try {
@@ -125,4 +123,6 @@ module.exports = {
     }
     next();
   },
+
+  
 };
