@@ -2,8 +2,17 @@ const express=require('express');
 const mongoose = require("mongoose");
 const bodyParse=require('body-parser');
 const bodyParser = require("body-parser");
-
 const app =express();
+const cors = require('cors');
+
+app.use(cors(
+  {
+    origin: "*"
+  }
+
+));
+
+
 
 app.use(bodyParse.urlencoded({extended:true}));
 app.use(bodyParser.json());

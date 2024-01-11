@@ -5,7 +5,8 @@ const { extractUserData } = require("../tokenMiddleware/jwtToken");
 const Category = require("../models/categoryModel");
 const IssuedBook = require("../models/issueBookModel");
 var DataFilter = {};
-var userData = [];
+var userData;
+
 module.exports = {
   //Create a new data
   createData: async (req, resp, next) => {
@@ -61,7 +62,7 @@ module.exports = {
 
   //Login authorization middleware
   loginauthorize: async (req, resp, next) => {
-    const { email, password } = req.query;
+    const { email, password } = req.body;
     try {
       // Retrieve the user with the given email
       const user = await Users.findOne({ email });
@@ -79,15 +80,6 @@ module.exports = {
             role: user.role,
             email: user.email,
           };
-          userData.push({
-            id: user._id.toString(),
-            name: user.name,
-            role: user.role,
-            email: user.email,
-          });
-          tokenManager.addUserData(userData);
-          const data = tokenManager.getUserData();
-          console.log(data);
           next();
         } else {
           resp.status(401).send("Unauthorized: Incorrect password");

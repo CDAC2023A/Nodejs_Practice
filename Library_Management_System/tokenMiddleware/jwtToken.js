@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const secretKey = "12764secretkey";
-const expiresIn = process.env.JWT_EXPIRY_TIME || "500s";
+require('dotenv').config();
+const expiresIn = process.env.JWT_EXPIRY_TIME || "60";
+
 const tokenManager = require("../tokenMiddleware/tokenManager");
 
 module.exports = {
@@ -8,15 +10,15 @@ module.exports = {
   generateToken: async (req, resp, next) => {
     try {
       // Retrieve user data from the userDataModule
-      const userData = tokenManager.getUserData();
-
+      //const userData = tokenManager.getUserData();
+      const userData = req.userData;
       // Ensure there is user data available
       if (userData.length === 0) {
         resp.status(401).json({ error: "User data not available" });
-        return;
+        return userData ;
       }
-
-      jwt.sign({ userData }, secretKey, { expiresIn }, (err, token) => {
+      //const data = userData.find(user => user.email == req.query.email);
+      jwt.sign({ userData}, secretKey, { expiresIn }, (err, token) => {
         if (err) {
           console.error("Error generating token:", err);
           resp.status(500).json({ error: "Internal Server Error" });
@@ -46,9 +48,31 @@ module.exports = {
       });
     }
   },
-   extractUserData: (req) => {
-    const token = req.headers.authorization.split(" ")[1];
-    const decodedToken = jwt.verify(token, secretKey);
-    return decodedToken.userData[0][0];
-  },
+  extractUserData: (req) => {
+    try {
+        const token = req.headers.authorization.split(" ")[1];
+
+        if (!token) {
+            throw new Error('Authorization token is missing');
+        }
+
+        const decodedToken = jwt.verify(token, secretKey);
+        console.log('Decoded Token:', decodedToken);
+        if (!decodedToken || !decodedToken.userData) {
+            throw new Error('Invalid or missing userData in the token');
+        }
+
+        return decodedToken.userData;
+    } catch (error) {
+        // Log details of the error during token verification
+        console.error('Error during token verification:', error);
+        return null;
+    }
+},
+
+  //  extractUserData: (req) => {
+  //   const token = req.headers.authorization.split(" ")[1];
+  //   const decodedToken = jwt.verify(token, secretKey);
+  //   return decodedToken.userData;
+  // },
 };
