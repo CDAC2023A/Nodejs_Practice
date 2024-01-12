@@ -178,7 +178,7 @@ module.exports = {
 
   //Issue book
   issueBook: async (req, resp, next) => {
-    const { _idcategory, _idbook, _idstudent } = req.params;
+    const { _idcategory, _idbook, _idstudent } = req.body;
     try {
       // Extract user data
       const userData = extractUserData(req);

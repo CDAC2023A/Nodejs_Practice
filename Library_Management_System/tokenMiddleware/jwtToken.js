@@ -17,7 +17,6 @@ module.exports = {
         resp.status(401).json({ error: "User data not available" });
         return userData ;
       }
-      //const data = userData.find(user => user.email == req.query.email);
       jwt.sign({ userData}, secretKey, { expiresIn }, (err, token) => {
         if (err) {
           console.error("Error generating token:", err);

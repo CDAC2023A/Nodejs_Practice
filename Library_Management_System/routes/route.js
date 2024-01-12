@@ -22,6 +22,6 @@ router.get("/users/list", Users.Showdata)
 router.post("/users/login",Users.loginauthorize,JwtToken.generateToken)
 router.put("/users/update/:_id",Users.updateData,JwtToken.verifyToken)
 router.delete("/users/delete/:_id",Users.deleteData,JwtToken.verifyToken)
-router.post('/librarian/issue_book/:_idcategory/:_idbook/:_idstudent', Users.issueBook,JwtToken.verifyToken);
+router.post('/librarian/issue_book', Users.issueBook,JwtToken.verifyToken);
 
 module.exports=router;      
