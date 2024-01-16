@@ -4,14 +4,14 @@ const bcrypt = require("bcrypt");
 const { extractUserData } = require("../tokenMiddleware/jwtToken");
 const Category = require("../models/categoryModel");
 const IssuedBook = require("../models/issueBookModel");
+const StudentBook= require("../models/StudentBookdata")
 var DataFilter = {};
 const { parse, differenceInDays } = require("date-fns");
-var userData;
 
 module.exports = {
   //Create a new data
-  createData: async (req, resp, next) => {
-    const { email, phone, password, role, gender, dob, name } = req.body;
+  registerUserData: async (req, resp, next) => {
+    const { email, phone, password, role, gender, dob, name } = req.body //as import("../interfaces/newUserInterface").newUser;
 
     try {
       // Check if the email or phone already exists
@@ -24,7 +24,7 @@ module.exports = {
       }
 
       // Hash the password
-      const hashedPassword = await bcrypt.hash(password, 10);
+      //const hashedPassword = await bcrypt.hash(password, 10);
 
       // Create a new user if not already exists with the encrypted password
       const data = await Users.create({
@@ -55,14 +55,14 @@ module.exports = {
   },
 
   //Get the list of data from db
-  Showdata: async (req, resp, next) => {
+  ShowUsersdata: async (req, resp, next) => {
     const usersList = await Users.find();
     resp.send(usersList);
     next();
   },
 
   //Login authorization middleware
-  loginauthorize: async (req, resp, next) => {
+  loginUser: async (req, resp, next) => {
     const { email, password } = req.body;
     try {
       // Retrieve the user with the given email
@@ -95,7 +95,7 @@ module.exports = {
   },
 
   //Update data
-  updateData: async (req, resp, next) => {
+  updateUserData: async (req, resp, next) => {
     const filter = { _id: req.params._id };
     let data = await Users.updateOne(filter, { $set: req.body });
     console.log(data);
@@ -109,7 +109,7 @@ module.exports = {
   },
 
   //Delete Data
-  deleteData: async (req, resp, next) => {
+  deleteUserData: async (req, resp, next) => {
     const filter = { _id: req.params._id };
     console.log(DataFilter);
     try {
@@ -200,8 +200,26 @@ module.exports = {
         if (!category) {
           return resp.status(404).json({ message: "Category not found" });
         }
+        // Find the book
+        const categories = await Category.findOne({ "books._id": _idbook });
+
+        if (!categories || !categories.books || categories.books.length === 0) {
+          return resp
+            .status(404)
+            .json({ message: "BookId not found in the specified category" });
+        }
+
+        const bookIndex = categories.books.findIndex(
+          (b) => b._id.toString() === _idbook
+        );
+
+        if (bookIndex === -1) {
+          return resp
+            .status(404)
+            .json({ message: "BookId not found in the specified category" });
+        }
         let book;
-        
+
         // Iterate over all categories
         for (const currentCategory of category) {
           // Find the book within the current category's books array
@@ -237,7 +255,8 @@ module.exports = {
           let payload = {
             bookId: _idbook,
             bookName: book.title,
-            categoryName: category.name,
+            categoryName: categories.name,
+            categoryId: categories.id,
             studentid: _idstudent,
             studentName: student.name,
             librarian: userData.id,
@@ -251,22 +270,19 @@ module.exports = {
           const issuedBook = new IssuedBook(payload);
           await Promise.all([issuedBook.save()]);
           resp.json({ message: "Book issued successfully", issuedBook });
-
-          //   // Find the book within the category
-          //   const bookIndex = Category.books.findIndex((b) => b.id === book);
-          //   console.log(bookIndex);
-
-          //   if (bookIndex !== -1) {
-          //     // Remove the book from the category
-          //     Category.books.splice(bookIndex, 1);
-
-          //     // Save the updated category
-          //     await Category.save();
-          //   }
         } else {
           return resp
             .status(404)
             .json({ message: "Book not found in the specified category" });
+        }
+        // Remove the book from the category
+        if (categories.books) {
+          categories.books.splice(bookIndex, 1);
+          await categories.save();
+        } else {
+          return resp
+            .status(404)
+            .json({ message: "Category does not contain books" });
         }
       } else {
         resp.status(403).json({ message: "Only librarians can issue books" });
@@ -278,64 +294,85 @@ module.exports = {
     next();
   },
 
-  //return book on the basis of librarian
   returnBook: async (req, resp, next) => {
-    const { _idcategory, _idbook, _idstudent } = req.body;
-
+    const { _idbook, _idstudent } = req.body;
     try {
       // Extract user data
       const userData = extractUserData(req);
+      console.log(userData);
 
       // Check if the user is a librarian
       if (userData.role === "librarian") {
-        // Find the issued book entry
+        // Find the issued book
         const issuedBook = await IssuedBook.findOne({
           bookId: _idbook,
-          categoryId: _idcategory,
           studentid: _idstudent,
-          //returnDate: null,
+          returnDate: null, // Assuming you have a returnDate field in IssuedBook to track returns
         });
 
         if (!issuedBook) {
           return resp.status(404).json({ message: "Issued book not found" });
         }
 
-        // Save the current _id before updating
-        const originalBookId = issuedBook.bookId;
+        // Calculate charges based on the period from issue date to now
+        const fromDateObj = parse(
+          issuedBook.issueDate,
+          "dd/MM/yyyy",
+          new Date()
+        );
+        const currentDate = new Date();
+        const numberOfDays = differenceInDays(currentDate, fromDateObj);
+        const totalCharge = numberOfDays * issuedBook.perDayCharge;
 
-        // Update return date in the IssuedBook entry
-        issuedBook.returnDate = new Date();
-        await issuedBook.save();
+        // // Update the issued book with return date and charges
+        // issuedBook.returnDate = currentDate;
+        // issuedBook.charges = totalCharge;
+        // await issuedBook.save();
 
-        // Find the category
-        const category = await Category.findOne({ _id: _idcategory });
+        let studentsbooks = {
+          bookId: _idbook,
+          bookName: issuedBook.bookName,
+          categoryName: issuedBook.categoryName,
+          categoryId: issuedBook.categoryId,
+          studentid: _idstudent,
+          studentName: issuedBook.studentName,
+          librarian: issuedBook.librarian,
+          issueDate: issuedBook.issueDate,
+          numberOfDays:numberOfDays,
+          charges:totalCharge
+          
+        };
+        // Check if the category ID from the issued book is present in the Category collection
+        const category = await Category.findById(issuedBook.categoryId);
 
         if (!category) {
-          return resp.status(404).json({ message: "CategoryId not found" });
+          return resp.status(404).json({ message: "Category not found" });
         }
 
         // Add the book back to the category
-        const book = {
-          title: issuedBook.bookName, // Assuming your book has a 'title' property
-          id: originalBookId,
-        };
-        category.books.push(book);
+        category.books.push({
+          title: issuedBook.bookName,
+          // Add other book details as needed
+        });
 
-        // Save the updated category
+        // Save the category
         await category.save();
 
-        // Delete the returned book data from IssuedBook collection
-        await IssuedBook.deleteOne({ _id: issuedBook._id });
-
-        resp.json({ message: "Book returned successfully", issuedBook });
+        resp.json({
+          message: "Book returned successfully",
+          issuedBook,
+          charges: totalCharge,
+        });
+        const studentbook = new StudentBook(studentsbooks);
+      await Promise.all([studentbook.save()]);
       } else {
         resp.status(403).json({ message: "Only librarians can return books" });
       }
+      
     } catch (error) {
       console.error("Error returning book:", error);
       resp.status(500).json({ error: "Internal Server Error" });
     }
-
     next();
   },
 };

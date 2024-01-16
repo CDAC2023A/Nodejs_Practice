@@ -15,11 +15,11 @@ router.put('/category/update/:_id',Category.updateData,JwtToken.verifyToken);
 router.put('/category/addbook/:_id',Category.AddbookeData,JwtToken.verifyToken);
 router.delete('/category/delete/:_id',Category.deleteData,JwtToken.verifyToken);
 
-router.post("/users/create",Users.createData)
-router.get("/users/list", Users.Showdata,JwtToken.verifyToken)
-router.post("/users/login",Users.loginauthorize,JwtToken.generateToken)
-router.put("/users/update/:_id",Users.updateData,JwtToken.verifyToken)
-router.delete("/users/delete/:_id",Users.deleteData,JwtToken.verifyToken);
+router.post("/users/create",Users.registerUserData)
+router.get("/users/list", Users.ShowUsersdata,JwtToken.verifyToken)
+router.post("/users/login",Users.loginUser,JwtToken.generateToken)
+router.put("/users/update/:_id",Users.updateUserData,JwtToken.verifyToken)
+router.delete("/users/delete/:_id",Users.deleteUserData,JwtToken.verifyToken);
 
 router.post('/librarian/issue_book', Users.issueBook,JwtToken.verifyToken);
 router.post('/librarian/return_book',Users.returnBook,JwtToken.verifyToken);

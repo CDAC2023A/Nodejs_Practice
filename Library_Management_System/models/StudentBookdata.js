@@ -1,7 +1,15 @@
 // models/issuedBook.js
 const mongoose = require("mongoose");
 
-const issuedBookSchema = new mongoose.Schema({
+const studentBookSchema = new mongoose.Schema({
+  studentid: {
+    type: String, // or ObjectId, based on your model structure
+    required: true,
+  },
+  studentName: {
+    type: String, // or ObjectId, based on your model structure
+    required: true,
+  },
   bookId: {
     type: String, // or ObjectId, based on your model structure
     required: true,
@@ -18,14 +26,6 @@ const issuedBookSchema = new mongoose.Schema({
     type: String,
     require: true,
   },
-  studentid: {
-    type: String, // or ObjectId, based on your model structure
-    required: true,
-  },
-  studentName: {
-    type: String, // or ObjectId, based on your model structure
-    required: true,
-  },
   librarian: {
     type: String, // or ObjectId, based on your model structure
     required: true,
@@ -34,24 +34,16 @@ const issuedBookSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  dueDate: {
-    type: String,
-    required: true,
-  },
-  qty: {
-    type: Number,
-    required: true,
-  },
-  perDayCharge: {
-    type: Number,
-    required: true,
-  },
   numberOfDays: {
     type: Number,
     required: true,
   },
+  charges:{
+    type:String,
+    require:true
+  }
 });
 
-const IssuedBook = mongoose.model("IssuedBook", issuedBookSchema);
+const StudentBook = mongoose.model("StudentBookdata", studentBookSchema);
 
-module.exports = IssuedBook;
+module.exports = StudentBook;
