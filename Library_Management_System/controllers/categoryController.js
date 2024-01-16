@@ -2,7 +2,6 @@ const Category = require("../models/categoryModel");
 const { extractUserData } = require("../tokenMiddleware/jwtToken");
 
 module.exports = {
-
   //create the categoryand list of book
   create: async (req, resp) => {
     try {
@@ -73,7 +72,54 @@ module.exports = {
       let data;
 
       if (userData.role === "admin") {
-        data = await Category.updateOne(filter, { $set: req.body });
+        const updateFields = {};
+        if (req.body.books) {
+          // Assuming req.body.books is an array of book objects
+          updateFields.books = req.body.books;
+        }
+        data = await Category.updateOne(filter, { $set: updateFields });
+        console.log(data);
+
+        if (data.acknowledged) {
+          resp.json({ message: "Data updated successfully", data });
+        } else {
+          resp.json({ message: "No data updated" });
+        }
+      } else {
+        console.log("Only admin has access to update data");
+        resp.status(403).json({ message: "Unauthorized" });
+      }
+
+      next();
+    } catch (error) {
+      console.error("Error during data update:", error);
+      resp.status(500).json({ error: "Internal Server Error" });
+    }
+  },
+  AddbookeData: async (req, resp, next) => {
+    try {
+      const filter = { _id: req.params._id }; //categoryId
+
+      const userData = extractUserData(req);
+
+      let data;
+
+      if (userData.role === "admin") {
+        const updateFields = {};
+
+        if (req.body.books) {
+          if (Array.isArray(req.body.books) && req.body.books.length > 0) {
+            // If it's an array of books
+            updateFields.$push = { books: { $each: req.body.books } };
+          } else {
+            // If it's a single book
+            updateFields.$push = { books: req.body.books };
+          }
+        }
+        // Use $inc to increment the booksCount by the number of books added
+        updateFields.$inc = { booksCount: req.body.books.length || 1 };
+
+        data = await Category.updateOne(filter, updateFields);
         console.log(data);
 
         if (data.acknowledged) {
@@ -93,7 +139,7 @@ module.exports = {
     }
   },
 
-  //delete 
+  //delete
   deleteData: async (req, resp, next) => {
     const filter = { _id: req.params._id };
     try {
@@ -123,6 +169,4 @@ module.exports = {
     }
     next();
   },
-
-  
 };

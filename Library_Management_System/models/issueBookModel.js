@@ -2,23 +2,19 @@
 const mongoose = require("mongoose");
 
 const issuedBookSchema = new mongoose.Schema({
-  categoryId: {
-    type: String,
-    required: true,
-  },
-  // categoryName: {
-  //   type: String,
-  //   required: true,
-  // },
   bookId: {
-    type:String, // or ObjectId, based on your model structure
+    type: String, // or ObjectId, based on your model structure
     required: true,
   },
-  // bookName: {
-  //   type: String, // or ObjectId, based on your model structure
-  //   required: true,
-  // },
+  bookName: {
+    type: String, // or ObjectId, based on your model structure
+    required: true,
+  },
   studentid: {
+    type: String, // or ObjectId, based on your model structure
+    required: true,
+  },
+  studentName: {
     type: String, // or ObjectId, based on your model structure
     required: true,
   },
@@ -27,11 +23,23 @@ const issuedBookSchema = new mongoose.Schema({
     required: true,
   },
   issueDate: {
-    type: Date,
+    type: String,
     required: true,
   },
   dueDate: {
-    type: Date,
+    type: String,
+    required: true,
+  },
+  qty: {
+    type: Number,
+    required: true,
+  },
+  perDayCharge: {
+    type: Number,
+    required: true,
+  },
+  numberOfDays: {
+    type: Number,
     required: true,
   },
 });

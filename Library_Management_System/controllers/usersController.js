@@ -5,6 +5,7 @@ const { extractUserData } = require("../tokenMiddleware/jwtToken");
 const Category = require("../models/categoryModel");
 const IssuedBook = require("../models/issueBookModel");
 var DataFilter = {};
+const { parse, differenceInDays } = require("date-fns");
 var userData;
 
 module.exports = {
@@ -178,50 +179,90 @@ module.exports = {
 
   //Issue book
   issueBook: async (req, resp, next) => {
-    const { _idcategory, _idbook, _idstudent } = req.body;
+    const { _idbook, _idstudent, qty, fromDate, uptoDate } = req.body;
     try {
       // Extract user data
       const userData = extractUserData(req);
       console.log(userData);
-
       // Check if the user is a librarian
       if (userData.role === "librarian") {
-        // Check if the category exists
-        const category = await Category.findOne({ _id: _idcategory });
-        if (!category) {
-          return resp.status(404).json({ message: "CategoryId not found" });
+        // Check if the student exists
+
+        const student = await Users.findOne({ _id: _idstudent });
+
+        if (!student) {
+          return resp.status(404).json({ message: "StudentId not found" });
         }
 
-        // Find the book within the category
-        const bookid = await category.books.find((b) => b.id === _idbook);
-        console.log(bookid);
-        if (bookid) {
+        // Find the category
+        const category = await Category.find();
+
+        if (!category) {
+          return resp.status(404).json({ message: "Category not found" });
+        }
+        let book;
+        
+        // Iterate over all categories
+        for (const currentCategory of category) {
+          // Find the book within the current category's books array
+          book = currentCategory.books.find(
+            (b) => b._id.toString() === _idbook
+          );
+
+          // If the book is found in the current category, log and break out of the loop
+          if (book) {
+            break;
+          }
+        }
+
+        if (!book) {
+          return resp
+            .status(404)
+            .json({ message: "BookId not found in the specified category" });
+        }
+        const perDayCharge = 5;
+
+        // Calculate the number of days
+        // Parse the date strings into JavaScript Date objects
+        const fromDateObj = parse(fromDate, "dd/MM/yyyy", new Date());
+        const uptoDateObj = parse(uptoDate, "dd/MM/yyyy", new Date());
+        if (isNaN(fromDateObj) || isNaN(uptoDateObj)) {
+          return resp.status(400).json({ message: "Invalid date format" });
+        }
+        // Calculate the number of days
+        const numberOfDays = differenceInDays(uptoDateObj, fromDateObj);
+
+        if (book) {
           // Create an IssuedBook entry
           let payload = {
             bookId: _idbook,
-           // bookName:bookid.name,
-            categoryId: _idcategory,
-            // categoryName:category.name,
+            bookName: book.title,
+            categoryName: category.name,
             studentid: _idstudent,
+            studentName: student.name,
             librarian: userData.id,
-            issueDate: new Date(),
-            dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+            issueDate: fromDate,
+            dueDate: uptoDate,
+            qty: qty,
+            perDayCharge: perDayCharge,
+            numberOfDays: numberOfDays,
           };
           // Due date is set to 5 days from now
           const issuedBook = new IssuedBook(payload);
           await Promise.all([issuedBook.save()]);
           resp.json({ message: "Book issued successfully", issuedBook });
 
-          // Find the book within the category
-          const bookIndex = category.books.findIndex((b) => b.id === _idbook);
-          console.log(bookIndex);
-          if (bookIndex !== -1) {
-            // Remove the book from the category
-            category.books.splice(bookIndex, 1);
+          //   // Find the book within the category
+          //   const bookIndex = Category.books.findIndex((b) => b.id === book);
+          //   console.log(bookIndex);
 
-            // Save the updated category
-            await category.save();
-          }
+          //   if (bookIndex !== -1) {
+          //     // Remove the book from the category
+          //     Category.books.splice(bookIndex, 1);
+
+          //     // Save the updated category
+          //     await Category.save();
+          //   }
         } else {
           return resp
             .status(404)
@@ -234,6 +275,67 @@ module.exports = {
       console.error("Error issuing book:", error);
       resp.status(500).json({ error: "Internal Server Error" });
     }
+    next();
+  },
+
+  //return book on the basis of librarian
+  returnBook: async (req, resp, next) => {
+    const { _idcategory, _idbook, _idstudent } = req.body;
+
+    try {
+      // Extract user data
+      const userData = extractUserData(req);
+
+      // Check if the user is a librarian
+      if (userData.role === "librarian") {
+        // Find the issued book entry
+        const issuedBook = await IssuedBook.findOne({
+          bookId: _idbook,
+          categoryId: _idcategory,
+          studentid: _idstudent,
+          //returnDate: null,
+        });
+
+        if (!issuedBook) {
+          return resp.status(404).json({ message: "Issued book not found" });
+        }
+
+        // Save the current _id before updating
+        const originalBookId = issuedBook.bookId;
+
+        // Update return date in the IssuedBook entry
+        issuedBook.returnDate = new Date();
+        await issuedBook.save();
+
+        // Find the category
+        const category = await Category.findOne({ _id: _idcategory });
+
+        if (!category) {
+          return resp.status(404).json({ message: "CategoryId not found" });
+        }
+
+        // Add the book back to the category
+        const book = {
+          title: issuedBook.bookName, // Assuming your book has a 'title' property
+          id: originalBookId,
+        };
+        category.books.push(book);
+
+        // Save the updated category
+        await category.save();
+
+        // Delete the returned book data from IssuedBook collection
+        await IssuedBook.deleteOne({ _id: issuedBook._id });
+
+        resp.json({ message: "Book returned successfully", issuedBook });
+      } else {
+        resp.status(403).json({ message: "Only librarians can return books" });
+      }
+    } catch (error) {
+      console.error("Error returning book:", error);
+      resp.status(500).json({ error: "Internal Server Error" });
+    }
+
     next();
   },
 };

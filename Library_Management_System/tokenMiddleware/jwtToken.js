@@ -1,9 +1,9 @@
 const jwt = require("jsonwebtoken");
 const secretKey = "12764secretkey";
 require('dotenv').config();
-const expiresIn = process.env.JWT_EXPIRY_TIME || "60";
+const expiresIn = process.env.JWT_EXPIRY_TIME || "3600";
 
-const tokenManager = require("../tokenMiddleware/tokenManager");
+//const tokenManager = require("../tokenMiddleware/tokenManager");
 
 module.exports = {
   //generate token
