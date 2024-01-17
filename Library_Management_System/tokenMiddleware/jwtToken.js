@@ -9,8 +9,6 @@ module.exports = {
   //generate token
   generateToken: async (req, resp, next) => {
     try {
-      // Retrieve user data from the userDataModule
-      //const userData = tokenManager.getUserData();
       const userData = req.userData;
       // Ensure there is user data available
       if (userData.length === 0) {
@@ -68,10 +66,4 @@ module.exports = {
         return null;
     }
 },
-
-  //  extractUserData: (req) => {
-  //   const token = req.headers.authorization.split(" ")[1];
-  //   const decodedToken = jwt.verify(token, secretKey);
-  //   return decodedToken.userData;
-  // },
 };

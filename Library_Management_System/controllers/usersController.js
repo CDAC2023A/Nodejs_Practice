@@ -8,7 +8,7 @@ const StudentBook= require("../models/StudentBookdata")
 var DataFilter = {};
 const { parse, differenceInDays } = require("date-fns");
 
-module.exports = {
+  module.exports = {
   //Create a new data
   registerUserData: async (req, resp, next) => {
     const { email, phone, password, role, gender, dob, name } = req.body //as import("../interfaces/newUserInterface").newUser;
@@ -324,7 +324,7 @@ module.exports = {
         const numberOfDays = differenceInDays(currentDate, fromDateObj);
         const totalCharge = numberOfDays * issuedBook.perDayCharge;
 
-        // // Update the issued book with return date and charges
+         // Update the issued book with return date and charges
         // issuedBook.returnDate = currentDate;
         // issuedBook.charges = totalCharge;
         // await issuedBook.save();
