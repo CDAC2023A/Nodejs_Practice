@@ -91,13 +91,15 @@ const ShowUserList = async (
   }
 };
 
+
+
 const loginUser = async (
   req: express.Request,
   resp: express.Response,
   next: express.NextFunction
 ): Promise<void> => {
   try {
-    const { email, password } = req.body as LoginData;
+    const { email, password } = req.body;
 
     // Retrieve the user with the given email
     const user = await userRegistration.findOne({ email });
@@ -119,12 +121,13 @@ const loginUser = async (
     } else {
       resp.status(401).send("Unauthorized: User not found");
     }
+    
   } catch (error) {
     console.error("Error during login:", error);
     resp.status(500).json({ message: "Internal server error" });
   }
+  
 };
-
 const updateUserData = async (
   req: express.Request,
   resp: express.Response,
@@ -202,10 +205,10 @@ const deleteUser = async (
       const decodedToken = req.body.decoded;
       console.log(decodedToken);
 
-      if (
-        decodedToken.userData.role === "admin" &&
-        decodedToken.userData.id !== req.params._id
-      ) {
+        if (
+          decodedToken.userData.role === "admin" &&
+          decodedToken.userData.id !== req.params._id
+        ) {
         let result = await userRegistration.deleteOne(filter);
 
         if (result.deletedCount > 0) {

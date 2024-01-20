@@ -1,8 +1,7 @@
 import express from 'express';
 const app:express.Application =express();
-import apiRouter from "./router/apiRouter"
+
 import userRouter from './router/userRouter';
-import categoryRouter from "./router/categoryRouter"
 import mongoose from 'mongoose';
 
 
@@ -23,8 +22,6 @@ mongoose.connect(mongoURI)
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-
-app.use('/api',apiRouter);
 app.use('/user',userRouter);
-app.use('/category',categoryRouter);
+
 app.listen(port, () => console.log(`Express server is started at http://localhost:${port}`));

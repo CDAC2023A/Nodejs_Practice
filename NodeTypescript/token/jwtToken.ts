@@ -28,12 +28,13 @@ const generateToken = async (
         resp.json({ token });
       }
     });
+    next();
   } catch (error) {
     console.error("Error during token generation:", error);
     resp.status(500).json({ error: "Internal Server Error" });
   }
 
-  next();
+  
 };
 
 const verifyToken = async (
@@ -60,6 +61,8 @@ const verifyToken = async (
         resp.status(401).json({ error: "Invalid token" });
       } else {
         req.body.decoded = decodedToken;
+        console.log("Valid Token");
+        
       }
     });
   } catch (error) {

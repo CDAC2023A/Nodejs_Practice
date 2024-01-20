@@ -7,7 +7,6 @@ interface IBook extends Document {
 interface ICategory extends Document {
   name: string;
   totalBooks: IBook[];
-  currentBooks: IBook[];
   totalBooksCount: number;
   currentBooksCount: number;
   calculateBooksCounts: () => void;
@@ -21,14 +20,6 @@ const categorySchema: Schema<ICategory> = new mongoose.Schema({
     uniqueCaseInsensitive: true,
   },
   totalBooks: [
-    {
-      title: {
-        type: String,
-        required: true,
-      },
-    },
-  ],
-  currentBooks: [
     {
       title: {
         type: String,
@@ -54,15 +45,14 @@ categorySchema.pre<ICategory>("save", function (next) {
       book._id = new mongoose.Types.ObjectId();
     }
   });
-  this.currentBooks = [...this.totalBooks];
-  this.calculateBooksCounts();
+ 
   next();
 });
 
 // Define a method to calculate total and current books count
 categorySchema.methods.calculateBooksCounts = function (this: ICategory) {
   this.totalBooksCount = this.totalBooks.length;
-  this.currentBooksCount = this.currentBooks.length;
+  this.currentBooksCount = this.totalBooks.length;
 };
 
 const Category: Model<ICategory> = mongoose.model<ICategory>("Category", categorySchema);
