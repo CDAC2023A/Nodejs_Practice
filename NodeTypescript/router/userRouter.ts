@@ -18,7 +18,7 @@ userRouter.post("/addBooks/:_id",categoryController.addBooksData,JwtToken.verify
 userRouter.get("/categorylist",categoryController.ShowCategorylist,JwtToken.verifyToken);
 userRouter.delete("/deleteCategory/:_id",categoryController.deleteCategory,JwtToken.verifyToken);
 
-userRouter.post('/issueBook',issuedBookController.issuedBook,JwtToken.verifyToken)
+userRouter.post('/issueBook',issuedBookController.issueBook)
 userRouter.post('/returnBook',issuedBookController.returnBook,JwtToken.verifyToken)
 
 export default userRouter;

@@ -10,8 +10,8 @@ interface IReturnedBook extends Document {
   DueDate: string;
   Qty: number;
   PerDayCharge: number;
-  NumberOfDays: number;
-  TotalCharges:number;
+//   NumberOfDays: number;
+//   TotalCharges:number;
   // Add other fields as needed (all as string)
 }
 
@@ -47,15 +47,15 @@ const returnedBookSchema: Schema<IReturnedBook> = new mongoose.Schema({
   PerDayCharge:{
     type:Number,
     required:true
-  },
-  NumberOfDays:{
-    type:Number,
-    required:true
-  },
-  TotalCharges:{
-    type:Number,
-    required:true
   }
+//   NumberOfDays:{
+//     type:Number,
+//     required:true
+//   },
+//   TotalCharges:{
+//     type:Number,
+//     required:true
+//   }
   // Add other fields as needed (all as string)
 });
 
