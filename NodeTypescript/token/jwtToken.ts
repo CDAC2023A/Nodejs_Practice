@@ -1,7 +1,7 @@
 import express from "express";
 const app = express();
 import jwt from "jsonwebtoken";
-const expiresIn = process.env.JWT_EXPIRY_TIME || "3600";
+const expiresIn = "1h";
 const secretKey = "1276564secretkey";
 
 const generateToken = async (
@@ -46,17 +46,13 @@ const verifyToken = async (
     const token =
       req.headers.authorization?.split(" ")[1] ||
       req.query.token ||
-      (req.cookies && req.cookies.token); 
+      (req.cookies && req.cookies.token);
 
     // Check if token is available
     if (!token) {
       resp.status(401).json({ error: "Token not provided" });
       return;
     }
-
-    // // Your secret key variable
-    // const secretKey = "1276564secretkey";
-
     // Verify the token
     jwt.verify(token, secretKey, (err: any, decodedToken: any) => {
       if (err) {
@@ -64,15 +60,13 @@ const verifyToken = async (
         resp.status(401).json({ error: "Invalid token" });
       } else {
         req.body.decoded = decodedToken;
-        console.log(decodedToken);
-        
-        next();
       }
     });
   } catch (error) {
     console.error("Error during token verification:", error);
     resp.status(500).json({ error: "Internal Server Error" });
   }
+  next();
 };
 
 export default { generateToken, verifyToken };

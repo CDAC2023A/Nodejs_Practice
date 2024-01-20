@@ -6,7 +6,6 @@ import verifyToken from "../token/jwtToken";
 const app = express();
 app.use(express.json());
 
-
 const registerUserData = async (
   req: express.Request,
   resp: express.Response,
@@ -125,6 +124,71 @@ const loginUser = async (
     resp.status(500).json({ message: "Internal server error" });
   }
 };
+
+const updateUserData = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  const filter = { _id: req.params._id };
+  const validationRules = [
+    body("email").isEmail().withMessage("Email is required"),
+    body("phone").isLength({ min: 10 }).withMessage("Phone is required"),
+    body("password").isLength({ min: 5 }).withMessage("Password is required"),
+    body("role").not().isEmpty().withMessage("Role is required"),
+    body("gender").not().isEmpty().withMessage("Gender is required"),
+    body("dob").not().isEmpty().withMessage("DOB is required"),
+    body("name").not().isEmpty().withMessage("Name is required"),
+  ];
+  // Apply validation rules
+  await Promise.all(validationRules.map((validation) => validation.run(req)));
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    resp.status(400).json({ errors: errors.array() });
+  }
+  const { email, phone, password, role, gender, dob, name } =
+    req.body as RegistrationData;
+  try {
+    // Check if the email is already associated with another user
+    const existingEmailUser = await userRegistration.findOne({
+      email,
+      _id: { $ne: req.params._id },
+    });
+    if (existingEmailUser) {
+      resp
+        .status(400)
+        .json({ error: "Email is already associated with another account." });
+      return;
+    }
+
+    // Check if the phone is already associated with another user
+    const existingPhoneUser = await userRegistration.findOne({
+      phone,
+      _id: { $ne: req.params._id },
+    });
+    if (existingPhoneUser) {
+      resp
+        .status(400)
+        .json({ error: "Phone is already associated with another account." });
+      return;
+    }
+    const updatedUser = await userRegistration.findOneAndUpdate(filter, {
+      email,
+      phone,
+      password, // You might want to hash the password before storing it
+      role,
+      gender,
+      dob,
+      name,
+    });
+
+    resp.json({ message: "User data updated successfully", user: updatedUser });
+  } catch (error) {
+    resp.status(500).json({ error: "Internal server error" });
+  }
+};
+
 const deleteUser = async (
   req: express.Request,
   resp: express.Response,
@@ -132,18 +196,33 @@ const deleteUser = async (
 ): Promise<void> => {
   const filter = { _id: req.params._id };
   try {
-    const decodedToken = req.body.decoded;
+    // Use the verifyToken function from the imported module
+    await verifyToken.verifyToken(req, resp, async () => {
+      // Continue with your logic after verifying the token
+      const decodedToken = req.body.decoded;
+      console.log(decodedToken);
 
-    if (decodedToken.role === "admin" && decodedToken.id !== req.params._id) {
-      let data = await userRegistration.deleteOne(filter);
-      if (data.deletedCount === 1) {
-        resp.json({ message: "Data deleted successfully Admin ", data });
-      } else if (data.deletedCount === 0) {
-        resp.json({ message: "No Id present Admin" });
+      if (
+        decodedToken.userData.role === "admin" &&
+        decodedToken.userData.id !== req.params._id
+      ) {
+        let result = await userRegistration.deleteOne(filter);
+
+        if (result.deletedCount > 0) {
+          resp.json({
+            message: "Data deleted successfully by Admin ",
+            data: result,
+          });
+        } else {
+          resp.json({ message: "No data found for deletion" });
+        }
+        next();
       } else {
-        resp.json({ message: "No" });
+        resp
+          .status(402)
+          .json({ message: "Records will be deleted by admin only" });
       }
-    }
+    });
   } catch (error) {
     console.error("Authentication error:", error);
     resp.status(401).json({ error: "Unauthorized" });
@@ -154,4 +233,5 @@ export default {
   ShowUserList,
   loginUser,
   deleteUser,
+  updateUserData,
 };

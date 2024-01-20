@@ -21,9 +21,7 @@ const categorySchema = new mongoose.Schema(
         default: 0
       },
   },
-//   {
-//     timestamps: true,
-//   }
+ 
 );
 categorySchema.methods.calculateBooksCount = function () {
     this.booksCount = this.books.length;
