@@ -14,7 +14,7 @@ userRouter.put("/update/:_id", userController.updateUserData,JwtToken.verifyToke
 
 
 userRouter.post('/createCategory',categoryController.createCategoryData,JwtToken.verifyToken);
-userRouter.post("/addBooks/:_id",categoryController.addBooksData,JwtToken.verifyToken);
+userRouter.post("/addBooks/",categoryController.addBookToCategory,JwtToken.verifyToken);
 userRouter.get("/categorylist",categoryController.ShowCategorylist,JwtToken.verifyToken);
 userRouter.delete("/deleteCategory/:_id",categoryController.deleteCategory,JwtToken.verifyToken);
 

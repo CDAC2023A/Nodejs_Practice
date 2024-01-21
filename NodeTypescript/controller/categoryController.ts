@@ -1,7 +1,8 @@
 import Category from "../models/categoryBookModel";
 import express from "express";
 import verifyToken from "../token/jwtToken";
-import Categories from "../models/CategoriesBookModel"
+import Categories from "../models/CategoriesBookModel";
+import IBook from "../models/CategoriesBookModel";
 
 //Create Category
 const createCategoryData = async (
@@ -27,7 +28,7 @@ const createCategoryData = async (
         // If the category doesn't exist, create a new one
         const newCategoryData = await Categories.create({
           name: req.body.name,
-          books: req.body.books.map((book:any) => ({
+          books: req.body.books.map((book: any) => ({
             title: book.title,
             author: book.author,
             publisher: book.publisher,
@@ -74,36 +75,77 @@ const ShowCategorylist = async (
 };
 
 //Add book in particular category
-const addBooksData = async (
+const addBookToCategory = async (
   req: express.Request,
   resp: express.Response,
   next: express.NextFunction
 ): Promise<void> => {
   try {
-    const filter = { _id: req.params._id };
     await verifyToken.verifyToken(req, resp, async () => {
-      // Continue with your logic after verifying the token
       const decodedToken = req.body.decoded;
-      console.log(decodedToken);
-      if (decodedToken.userData.role === "admin") {
-        if (req.body.books) {
-          const updateFields: any = {};
-          if (Array.isArray(req.body.books) && req.body.books.length > 0) {
-            // If it's an array of books
-            updateFields.$push = { totalBooks: { $each: req.body.books } };
-          } else {
-            // If it's a single book
-            updateFields.$push = { totalBooks: req.body.books };
-          }
-          const data = await Category.updateOne(filter, updateFields);
-          console.log(data);
-          resp.send("Book added to category");
-        }
+
+      // Check if the user is an admin
+      if (decodedToken.userData.role !== "admin") {
+        resp.status(403).send("Only admin can add books to the category");
+        return;
       }
+
+      const { book, categoryId } = req.body;
+
+      // Find the category by ID
+      const existingCategory: any = await Categories.findOne({
+        _id: categoryId,
+      });
+      console.log(existingCategory);
+
+      if (!existingCategory) {
+        resp.status(404).send("Category not found");
+        return;
+      }
+
+      // Check if the book with the same title already exists in the category
+      const bookExists = existingCategory.books.some(
+        (b: any) => b.title === book.title
+      );
+
+      if (bookExists) {
+        resp
+          .status(400)
+          .send("Book with the same title already exists in the category");
+        return;
+      }
+
+      const updatedCategory: any = await Categories.findOneAndUpdate(
+        { _id: categoryId, "books.title": { $ne: book.title } },
+        {
+          $push: {
+            books: {
+              title: book.title,
+              author: book.author,
+              publisher: book.publisher,
+              Totalquantity: book.Totalquantity,
+              issuedQty: 0,
+              RemainQty: book.Totalquantity,
+              perDayCharges: book.perDayCharges,
+            },
+          },
+        },
+        { new: true }
+      );
+      
+
+      // Send a success response
+      resp.json({
+        success: true,
+        message: "Book added to category successfully",
+        updatedCategory: updatedCategory,
+      });
+
       next();
     });
   } catch (error) {
     // Handle other errors
+    console.error(error);
     resp.status(500).send("Internal Server Error");
   }
 };
@@ -121,9 +163,9 @@ const deleteCategory = async (
       const decodedToken = req.body.decoded;
       console.log(decodedToken);
       if (decodedToken.userData.role === "admin") {
-        const data = await Category.exists(filter);
+        const data = await Categories.exists(filter);
         if (data) {
-          const deletedCategory = await Category.deleteOne(filter);
+          const deletedCategory = await Categories.deleteOne(filter);
           if (deletedCategory.deletedCount > 0) {
             // Deletion successful
             resp.status(200).json({ message: "Category deleted successfully" });
@@ -147,7 +189,7 @@ const deleteCategory = async (
 //exports
 export default {
   createCategoryData,
-  addBooksData,
+  addBookToCategory,
   ShowCategorylist,
   deleteCategory,
 };
