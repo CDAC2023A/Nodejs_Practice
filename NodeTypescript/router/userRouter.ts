@@ -20,6 +20,7 @@ userRouter.delete("/deleteCategory/:_id",categoryController.deleteCategory,JwtTo
 
 userRouter.post('/issueBook',issuedBookController.issueBook)
 userRouter.post('/returnBook',issuedBookController.returnBook,JwtToken.verifyToken)
+userRouter.get("/returnBookHistory",issuedBookController.returnBookHistory,JwtToken.verifyToken);
 
 export default userRouter;
 

@@ -1,9 +1,14 @@
 import express from 'express';
-const app:express.Application =express();
-
 import userRouter from './router/userRouter';
 import mongoose from 'mongoose';
+import cors from 'cors'; 
+const app:express.Application =express();
+app.use(cors(
+  {
+    origin: "*"
+  }
 
+));
 
 //const localhost :string='127.0.0.1';
 const port:number=5000; 

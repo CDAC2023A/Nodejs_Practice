@@ -57,15 +57,15 @@ const IssuedBookSchema = new Schema({
   },
   
   perDayCharge: {
-    type: String,
+    type: Number,
     required: true,
   },
   TotalCharges: {
-    type: String,
+    type: Number,
     required: true,
   },
   numberOfDays: {
-    type: String,
+    type: Number,
     required: true,
   },
 });

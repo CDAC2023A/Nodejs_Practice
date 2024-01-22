@@ -2,7 +2,7 @@ import Category from "../models/categoryBookModel";
 import express from "express";
 import verifyToken from "../token/jwtToken";
 import Categories from "../models/CategoriesBookModel";
-import IBook from "../models/CategoriesBookModel";
+//import IBook from "../models/CategoriesBookModel";
 
 //Create Category
 const createCategoryData = async (
