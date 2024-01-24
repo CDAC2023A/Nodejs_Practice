@@ -1,4 +1,4 @@
-import Category from "../models/categoryBookModel";
+
 import express from "express";
 import verifyToken from "../token/jwtToken";
 import Categories from "../models/CategoriesBookModel";
@@ -64,11 +64,20 @@ const ShowCategorylist = async (
   next: express.NextFunction
 ): Promise<void> => {
   try {
-    const CategoryList = await Category.find();
+    // Fetch data without using populate
+    const CategoryList = await Categories.find();
+
+    // Log the fetched data to the console for inspection
+    console.log("Category List:", CategoryList);
+
+    // Send the fetched data as JSON response
     resp.status(200).json(CategoryList);
+
+    // Continue to the next middleware
     next();
   } catch (error) {
-    console.error("Error fetching user list:", error);
+    // Handle errors
+    console.error("Error fetching category list:", error);
     resp.status(500).json({ message: "Internal Server Error" });
     next(error);
   }
@@ -132,7 +141,6 @@ const addBookToCategory = async (
         },
         { new: true }
       );
-      
 
       // Send a success response
       resp.json({

@@ -1,13 +1,11 @@
 import express from "express";
-import path from "path";
-const categoryPath = path.join(__dirname, "models", "categoryBookModel");
 import verifyToken from "../token/jwtToken";
 import IssuedBook from "../models/issudBookModel";
 import ReturnBook from "../models/returnBookModel";
 import moment from "moment";
 import Categories from "../models/CategoriesBookModel";
 import UserReges from "../models/userRegestrationModel";
-
+    
 const issueBook = async (
   req: express.Request,
   resp: express.Response,
@@ -17,12 +15,32 @@ const issueBook = async (
     await verifyToken.verifyToken(req, resp, async () => {
       const decodedToken = req.body.decoded;
 
-      //Check if the user is a librarian
+      //Check if the user is a librarian------------------
       if (decodedToken.userData.role !== "librarian") {
         return resp.status(403).send("Only librarians can issue books.");
       }
       const { studentId, bookId, returnDate } = req.body;
 
+      // Check if the student exists---------------
+      const student = await UserReges.findById(studentId);
+      if (!student) {
+        return resp.status(400).send("Student not found");
+      }
+      // Check if the book and student exist--------------------
+      const category = await Categories.findOne({ "books._id": bookId });
+      console.log(category);
+      if (!category) {
+        return resp.status(400).send("Book not found in the category");
+      }
+      //Find the book in the category
+      const book: any = category.books.find(
+        (b: any) => b._id.toString() === bookId
+      );
+
+      //Check if there are enough remaining quantities to issue
+      if (book.RemainQty <= 0) {
+        return resp.status(400).send("Book is out of stock");
+      }
       const existingIssuedBook: any = await IssuedBook.findOne({
         studentId: studentId,
         bookId: bookId,
@@ -30,45 +48,17 @@ const issueBook = async (
 
       if (existingIssuedBook) {
         console.log("Student has already issued this book");
-      }
-      if (existingIssuedBook) {
         return resp.status(400).send("Student has already issued this book");
       }
-      // Check if the book and student exist
-      const category = await Categories.findOne({ "books._id": bookId });
-      console.log(category);
-      if (!category) {
-        return resp.status(400).send("Book not found in the category");
-      }
 
-      // Check if the student exists (you need to replace this with your actual logic)
-      const student = await UserReges.findById(studentId);
-      if (!student) {
-        return resp.status(400).send("Student not found");
-      }
       const issueDate: any = moment().format("DD/MM/YYYY");
-      const ReturnDate: any = returnDate;
-
-      console.log(issueDate);
-      console.log(ReturnDate);
-
       const issueDateMoment: moment.Moment = moment(issueDate, "DD/MM/YYYY");
       const returnDateMoment: moment.Moment = moment(returnDate, "DD/MM/YYYY");
-
       const numberOfDays: number = returnDateMoment.diff(
         issueDateMoment,
         "days"
       );
-
-      // //Find the book in the category
-      const book: any = category.books.find(
-        (b: any) => b._id.toString() === bookId
-      );
       const totalCharges = numberOfDays * book.perDayCharges;
-      //Check if there are enough remaining quantities to issue
-      if (book.RemainQty <= 0) {
-        return resp.status(400).send("Book is out of stock");
-      }
 
       // Update quantities and issue the book
       book.RemainQty -= 1;
@@ -176,7 +166,7 @@ const returnBook = async (
       const returnDateMoment: moment.Moment = moment(ReturnDate, "DD/MM/YYYY");
       const numberOfDays: any = returnDateMoment.diff(issueDate, "days");
       console.log(numberOfDays);
-     
+
       console.log("Return Date:", returnDateMoment.format("DD/MM/YYYY"));
 
       const perDaycharges: number = issuedBook.perDayCharge;
