@@ -5,7 +5,25 @@ import ReturnBook from "../models/returnBookModel";
 import moment from "moment";
 import Categories from "../models/CategoriesBookModel";
 import UserReges from "../models/userRegestrationModel";
-    
+
+//IssueBook list
+const issuedBookList = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  try {
+    const IssuedBooklist = await IssuedBook.find();
+    resp.json({ message: "Data list get successfully", IssuedBooklist });
+    next();
+  } catch (error) {
+    console.error("Error fetching user list:", error);
+    resp.status(500).json({ message: "Internal Server Error" });
+    next(error);
+  }
+};
+
+//Issue book
 const issueBook = async (
   req: express.Request,
   resp: express.Response,
@@ -70,6 +88,7 @@ const issueBook = async (
       // Create a record in the IssuedBooks collection
       const issuedBookData = await IssuedBook.create({
         bookId: bookId,
+        bookName:book.title,
         categoryId: category._id,
         categoryName: category.name,
         studentId: student.id,
@@ -212,4 +231,4 @@ const returnBook = async (
     resp.status(500).send("Internal Server Error");
   }
 };
-export default { returnBook, issueBook, returnBookHistory };
+export default { returnBook, issueBook, returnBookHistory, issuedBookList };

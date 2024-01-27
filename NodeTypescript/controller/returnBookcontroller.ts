@@ -84,9 +84,11 @@ const returnBookHistory = async (
         // Save the updated category and issued book
         let ReturnBookData = {
           BookId: issuedBook.bookId,
+          BookName:issuedBook.bookName,
           CategoryId: issuedBook.categoryId,
           CategoryName: issuedBook.categoryName,
           StudentId: issuedBook.studentId,
+          StudentName:issuedBook.studentName,
           LibrarianId: issuedBook.librarianId,
           IssueDate: issueDate,
           DueDate: returnDateMoment,

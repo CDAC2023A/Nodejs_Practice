@@ -4,10 +4,11 @@ import userController from "../controller/userController";
 import JwtToken from "../token/jwtToken"
 import categoryController from "../controller/categoryController";
 import issuedBookController from "../controller/issuedBookController";
+import returbBookController from "../controller/returnBookcontroller";
 
 //import bcrypt from "bcryptjs";
 userRouter.post("/register", userController.registerUserData);
-userRouter.get("/list", userController.ShowUserList);
+userRouter.get("/list", userController.ShowUserList,JwtToken.generateToken);
 userRouter.post("/login", userController.loginUser,JwtToken.generateToken);
 userRouter.delete("/delete/:_id", userController.deleteUser,JwtToken.verifyToken);
 userRouter.put("/update/:_id", userController.updateUserData,JwtToken.verifyToken);
@@ -19,8 +20,9 @@ userRouter.get("/categorylist",categoryController.ShowCategorylist,JwtToken.veri
 userRouter.delete("/deleteCategory/:_id",categoryController.deleteCategory,JwtToken.verifyToken);
 
 userRouter.post('/issueBook',issuedBookController.issueBook)
-userRouter.post('/returnBook',issuedBookController.returnBook,JwtToken.verifyToken)
-userRouter.get("/returnBookHistory",issuedBookController.returnBookHistory,JwtToken.verifyToken);
+userRouter.get("/issuedBookList",issuedBookController.issuedBookList,JwtToken.verifyToken);
 
+userRouter.get("/returnBookHistory",returbBookController.returnBookHistory,JwtToken.verifyToken);
+userRouter.post('/returnBook',returbBookController.returnBook,JwtToken.verifyToken)
 export default userRouter;
 

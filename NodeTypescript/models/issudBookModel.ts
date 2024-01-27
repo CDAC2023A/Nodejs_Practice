@@ -4,6 +4,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 // Define the interface for the IssuedBook document
 interface IssuedBook extends Document {
   bookId: string;
+  bookName:string;
   categoryId: string;
   categoryName: string;
   studentId: string;
@@ -20,6 +21,10 @@ interface IssuedBook extends Document {
 // Define the schema for the IssuedBook model
 const IssuedBookSchema = new Schema({
   bookId: {
+    type: String,
+    required: true,
+  },
+  bookName: {
     type: String,
     required: true,
   },
