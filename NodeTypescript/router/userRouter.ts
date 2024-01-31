@@ -12,7 +12,9 @@ userRouter.get("/list", userController.ShowUserList,JwtToken.generateToken);
 userRouter.post("/login", userController.loginUser,JwtToken.generateToken);
 userRouter.delete("/delete/:_id", userController.deleteUser,JwtToken.verifyToken);
 userRouter.put("/update/:_id", userController.updateUserData,JwtToken.verifyToken);
-
+//Excel sheet and Pdf
+userRouter.get("/userExcelSheet",userController.Exportsheet,JwtToken.verifyToken);
+userRouter.get("/userPdf",userController.ExportPdf,JwtToken.verifyToken);
 
 userRouter.post('/createCategory',categoryController.createCategoryData,JwtToken.verifyToken);
 userRouter.post("/addBooks/",categoryController.addBookToCategory,JwtToken.verifyToken);
