@@ -1,0 +1,15 @@
+service: serverlessaawshttp
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-south-1
+
+functions:
+  rateHandler:
+    handler: index.run
+    events:
+      - httpApi:
+          path: /index
+          method: get

@@ -1,10 +1,10 @@
 // Import necessary modules
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 // Define the interface for the IssuedBook document
 interface IssuedBook extends Document {
   bookId: string;
-  bookName:string;
+  bookName: string;
   categoryId: string;
   categoryName: string;
   studentId: string;
@@ -13,7 +13,7 @@ interface IssuedBook extends Document {
   issueDate: string;
   dueDate: string;
   qty: number;
-  TotalCharges:number;
+  TotalCharges: number;
   perDayCharge: number;
   numberOfDays: number;
 }
@@ -60,7 +60,7 @@ const IssuedBookSchema = new Schema({
     type: Number,
     required: true,
   },
-  
+
   perDayCharge: {
     type: Number,
     required: true,
@@ -76,7 +76,7 @@ const IssuedBookSchema = new Schema({
 });
 
 // Create the IssuedBook model
-const IssuedBook = mongoose.model<IssuedBook>('IssuedBook', IssuedBookSchema);
+const IssuedBook = mongoose.model<IssuedBook>("IssuedBook", IssuedBookSchema);
 
 // Export the IssuedBook model
 export default IssuedBook;

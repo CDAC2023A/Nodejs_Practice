@@ -263,12 +263,10 @@ const Exportsheet = async (
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheatml.sheet"
     );
-    resp.setHeader(
-     "Content-Disposition",`attachment; filename=users.xlsx`
-    );
-    return workbook.xlsx.write(resp).then(()=>{
+    resp.setHeader("Content-Disposition", `attachment; filename=users.xlsx`);
+    return workbook.xlsx.write(resp).then(() => {
       resp.status(200);
-    })
+    });
   } catch (error) {
     console.error("Error fetching user list:", error);
     resp.status(500).json({ message: "Internal Server Error" });
@@ -283,14 +281,14 @@ const ExportPdf = async (
   try {
     const UserList = await userRegistration.find();
     // Create a new PDF document
-    const PDFDocument = require('pdfkit');
+    const PDFDocument = require("pdfkit");
     const doc = new PDFDocument();
-    
+
     // Pipe the PDF to the response
-    resp.setHeader('Content-Type', 'application/pdf');
-    resp.setHeader('Content-Disposition', 'attachment; filename=users.pdf');
+    resp.setHeader("Content-Type", "application/pdf");
+    resp.setHeader("Content-Disposition", "attachment; filename=users.pdf");
     doc.pipe(resp);
-    
+
     // Add user data to the PDF
     UserList.forEach((user, index) => {
       doc.text(`User ${index + 1}:`);
@@ -303,7 +301,7 @@ const ExportPdf = async (
     });
 
     // End the PDF document
-    doc.end()
+    doc.end();
   } catch (error) {
     console.error("Error fetching user list:", error);
     resp.status(500).json({ message: "Internal Server Error" });
@@ -318,5 +316,5 @@ export default {
   deleteUser,
   updateUserData,
   Exportsheet,
-  ExportPdf
+  ExportPdf,
 };
