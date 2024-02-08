@@ -4,9 +4,13 @@ import { body, validationResult } from "express-validator";
 import { RegistrationData, LoginData } from "../Interfces/userReges"; // Adjust the path accordingly
 import userRegistration from "../models/userRegestrationModel";
 import verifyToken from "../token/jwtToken";
-
+import fs from "fs";
+import XLSX from "xlsx";
 const app = express();
 app.use(express.json());
+import multer from "multer";
+
+// Read Excel file
 
 const registerUserData = async (
   req: express.Request,
@@ -309,6 +313,162 @@ const ExportPdf = async (
   }
 };
 
+function convertToObject(data: any) {
+  const result: any = {};
+
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      const keys = key.split(".");
+      let nested = result;
+
+      for (let i = 0; i < keys.length; i++) {
+        const currentKey = keys[i];
+        if (i === keys.length - 1) {
+          if (currentKey === "documents" || currentKey === "partnerIds") {
+            nested[currentKey] = data[key]
+              .split(/\r?\n/)
+              .map((item: string) => item.trim());
+          } else if (currentKey === "monthlySolarAccess") {
+            nested[currentKey] = data[key]
+              .split(/\r?\n/)
+              .map((item: string) => item.trim());
+          } else if (currentKey === "monthly") {
+            nested[currentKey] = data[key]
+              .split(/\r?\n/)
+              .map((item: string) => item.trim());
+          } else if (currentKey === "yearly") {
+            nested[currentKey] = parseInt(data[key], 10);
+          } else if (currentKey === "panels") {
+            const panelData = data[key].split(/\r?\n/);
+            nested[currentKey] = panelData.map((panel: string) => {
+              const panelInfo = panel.split("|");
+              return {
+                modelName: panelInfo[0].trim(),
+                manufacturer: panelInfo[1].trim(),
+                moduleType: panelInfo[2].trim(),
+                panelCount: panelInfo[3].trim(),
+                serialNumber: panelInfo[4].trim(),
+                registrationNumber: panelInfo[5].trim(),
+                productId: panelInfo[6].trim(),
+                monthlySolarAccess: panelInfo[7]
+                  .split(",")
+                  .map((item: string) => item.trim()),
+                arrayOrientation: {
+                  orientation: panelInfo[8].trim(),
+                  tilt: panelInfo[9].trim(),
+                  azimuth: panelInfo[10].trim(),
+                },
+              };
+            });
+          } else {
+            nested[currentKey] = data[key];
+          }
+        } else {
+          nested[currentKey] = nested[currentKey] || {};
+          nested = nested[currentKey];
+        }
+      }
+    }
+  }
+  // // Check if evChargers is an object, if so, convert it to an array
+  // if (
+  //   result.devices &&
+  //   result.devices.evChargers &&
+  //   typeof result.devices.evChargers === "object"
+  // ) {
+  //   result.devices.evChargers = [result.devices.evChargers];
+  // } else if (
+  //   result.devices &&
+  //   result.devices.panels &&
+  //   Array.isArray(result.devices.panels) &&
+  //   result.devices.panels.length === 1 &&
+  //   typeof result.devices.panels[0] === "object"
+  // ) {
+  //   result.devices.panels = result.devices.panels[0];
+  // }
+
+  return result;
+}
+
+const ReadExceldata = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  try {
+    const workbook = XLSX.readFile("tpo-asset-bulk-upload.xlsx");
+    const sheetName = workbook.SheetNames[0]; // assuming data is in the first sheet
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { raw: false });
+    const finalItems = jsonData.map((item) => {
+      return convertToObject(item);
+    });
+
+    // Print JSON data
+    console.log(jsonData);
+    resp.json({
+      message: "Data read successfully ",
+      data: finalItems,
+    });
+  } catch (error) {
+    console.error("Error fetching user list:", error);
+    resp.status(500).json({ message: "Internal Server Error" });
+    next(error);
+  }
+};
+
+const ReadExceldatadynamically = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  try {
+    const upload = multer();
+
+    upload.single("excelFile")(req, resp, (err: any) => {
+      if (err) {
+        // Multer or file upload error
+        console.error("File upload error:", err);
+        resp.status(400).json({ message: "File upload error" });
+        return;
+      }
+
+      if (!req.file) {
+        // No file uploaded
+        resp.status(400).json({ message: "No file uploaded" });
+        return;
+      }
+
+      // File uploaded successfully
+      console.log("File uploaded:", req.file);
+
+      // Read the uploaded Excel file
+      try {
+        const filePath = req.file.path;
+        console.log("File path:", filePath);
+
+        const workbook = XLSX.read(req.file.buffer);
+        const sheetName = workbook.SheetNames[0]; // assuming data is in the first sheet
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { raw: false });
+
+        // Print JSON data
+        console.log("Excel data:", jsonData);
+        resp.json({
+          message: "File uploaded and Excel data read successfully",
+          data: jsonData,
+        });
+      } catch (readError) {
+        console.error("Error reading Excel file:", readError);
+        resp.status(500).json({ message: "Error reading Excel file" });
+      }
+    });
+  } catch (error) {
+    console.error("Error handling file upload:", error);
+    resp.status(500).json({ message: "Internal Server Error" });
+    next(error);
+  }
+};
 export default {
   registerUserData,
   ShowUserList,
@@ -317,4 +477,6 @@ export default {
   updateUserData,
   Exportsheet,
   ExportPdf,
+  ReadExceldata,
+  ReadExceldatadynamically,
 };

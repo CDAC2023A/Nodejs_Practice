@@ -3,5 +3,12 @@
   "version": "1.0.0",
   "description": "Example of creating a function that runs as a cron job using the serverless `schedule` event",
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@serverless/typescript": "^3.38.0"
+  },
+  "dependencies": {
+    "@types/node": "^20.11.16",
+    "xlsx": "^0.18.5"
+  }
 }
