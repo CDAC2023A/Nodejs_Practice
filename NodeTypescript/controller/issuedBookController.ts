@@ -23,7 +23,7 @@ const issuedBookList = async (
   }
 };
 
-//Issue book
+//Issue single book
 const issueBook = async (
   req: express.Request,
   resp: express.Response,
@@ -88,7 +88,7 @@ const issueBook = async (
       // Create a record in the IssuedBooks collection
       const issuedBookData = await IssuedBook.create({
         bookId: bookId,
-        bookName:book.title,
+        bookName: book.title,
         categoryId: category._id,
         categoryName: category.name,
         studentId: student.id,
@@ -117,6 +117,7 @@ const issueBook = async (
     resp.status(500).send("Internal Server Error");
   }
 };
+
 const returnBookHistory = async (
   req: express.Request,
   resp: express.Response,

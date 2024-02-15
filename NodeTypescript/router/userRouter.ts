@@ -8,6 +8,8 @@ import returbBookController from "../controller/returnBookcontroller";
 
 //import bcrypt from "bcryptjs";
 userRouter.post("/register", userController.registerUserData);
+userRouter.post("/registerqr", userController.registerUserDataQr);
+userRouter.post("/registerqrsvg", userController.registerUserSvgQrcode);
 userRouter.get("/list", userController.ShowUserList, JwtToken.generateToken);
 userRouter.post("/login", userController.loginUser, JwtToken.generateToken);
 userRouter.delete(
@@ -35,6 +37,16 @@ userRouter.get(
 userRouter.post(
   "/readexceldynamic",
   userController.ReadExceldatadynamically,
+  JwtToken.verifyToken
+);
+userRouter.post(
+  "/readcsvFile",
+  userController.ReadCSVDataDynamically,
+  JwtToken.verifyToken
+);
+userRouter.post(
+  "/writeExceldata",
+  userController.WriteExcelData,
   JwtToken.verifyToken
 );
 

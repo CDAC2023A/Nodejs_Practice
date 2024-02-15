@@ -33,8 +33,6 @@ const generateToken = async (
     console.error("Error during token generation:", error);
     resp.status(500).json({ error: "Internal Server Error" });
   }
-
-  
 };
 
 const verifyToken = async (
@@ -62,7 +60,6 @@ const verifyToken = async (
       } else {
         req.body.decoded = decodedToken;
         console.log("Valid Token");
-        
       }
     });
   } catch (error) {

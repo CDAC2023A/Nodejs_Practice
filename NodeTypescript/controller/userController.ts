@@ -3,14 +3,20 @@ import excelJS from "exceljs";
 import { body, validationResult } from "express-validator";
 import { RegistrationData, LoginData } from "../Interfces/userReges"; // Adjust the path accordingly
 import userRegistration from "../models/userRegestrationModel";
+import UserQrModel, { User } from "../models/userRegesQr";
+import UsersvgModel from "../models/userregQrsvg";
 import verifyToken from "../token/jwtToken";
 import fs from "fs";
+import qr from "qrcode";
 import XLSX from "xlsx";
 const app = express();
 app.use(express.json());
 import multer from "multer";
-
-// Read Excel file
+import csvtojson from "csvtojson";
+import path from "path";
+import pdf from "pdfkit";
+import excel from "exceljs";
+import generateQRCodeSVG from "../SVG/svggenerate";
 
 const registerUserData = async (
   req: express.Request,
@@ -80,7 +86,246 @@ const registerUserData = async (
 
   next();
 };
+export const generateQRCode = async (
+  qrCodeText: string,
+  qrCodeFilePath: string
+): Promise<void> => {
+  try {
+    // Generate QR code
+    const qrCodeBuffer = await qr.toBuffer(qrCodeText);
 
+    // Save QR code image to file
+    await fs.promises.writeFile(qrCodeFilePath, qrCodeBuffer);
+
+    console.log("QR code generated successfully");
+  } catch (error) {
+    console.error("Error generating QR code:", error);
+    throw new Error("Failed to generate QR code");
+  }
+};
+const registerUserDataQr = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  // Validation rules
+  const validationRules = [
+    body("email").isEmail().withMessage("Email is required"),
+    body("phone").isLength({ min: 10 }).withMessage("Phone is required"),
+    body("password").isLength({ min: 5 }).withMessage("Password is required"),
+    body("role").not().isEmpty().withMessage("Role is required"),
+    body("gender").not().isEmpty().withMessage("Gender is required"),
+    body("dob").not().isEmpty().withMessage("DOB is required"),
+    body("name").not().isEmpty().withMessage("Name is required"),
+  ];
+
+  // Apply validation rules
+  await Promise.all(validationRules.map((validation) => validation.run(req)));
+
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    resp.status(400).json({ errors: errors.array() });
+    return;
+  }
+
+  const { email, phone, password, role, gender, dob, name } = req.body;
+
+  try {
+    // Check if the email or phone already exists
+    const existingUser = await UserQrModel.findOne({
+      $or: [{ email }, { phone }],
+    });
+
+    if (existingUser) {
+      resp
+        .status(400)
+        .json({ message: "Email or phone number already exists." });
+      return;
+    }
+
+    // Generate QR code for the user
+    const qrCodeText = JSON.stringify({
+      email,
+      phone,
+      role,
+      gender,
+      dob,
+      name,
+    });
+
+    // Generate QR code asynchronously and get the PNG buffer
+    const qrCodeBase64 = await qr.toBuffer(qrCodeText, { type: "png" });
+    // Convert the buffer to a base64 string
+    const code = qrCodeBase64.toString("base64");
+    // Save QR code Data URL directly to database
+    const newUser: User = await UserQrModel.create({
+      email,
+      phone,
+      password,
+      role,
+      gender,
+      dob,
+      name,
+      qrCode: qrCodeBase64,
+    });
+    // Save PNG image locally
+    const qrfilePath = path.join(__dirname, "qr_codes", `${email}.png`);
+    fs.writeFileSync(qrfilePath, qrCodeBase64);
+
+    // Create a PDF document
+    const pdfDir = path.join(__dirname, "user_pdfdata");
+    const pdfFileName = `${email}_${Date.now()}.pdf`;
+    const pdfPath = path.join(pdfDir, pdfFileName);
+    const doc = new pdf();
+    doc.pipe(fs.createWriteStream(pdfPath));
+
+    // Add user details to the PDF
+    doc.fontSize(12).text(`Name: ${name}`);
+    doc.text(`Email: ${email}`);
+    doc.text(`Phone: ${phone}`);
+    doc.text(`Role: ${role}`);
+    doc.text(`Gender: ${gender}`);
+    doc.text(`DOB: ${dob}`);
+
+    // Add spacing
+    doc.moveDown();
+    // Embed QR code image in the PDF
+    doc.image(qrfilePath, { width: 200 });
+    // Finalize the PDF
+    doc.end();
+
+    // Ensure Excel file exists
+    const excelFilePath = path.join(__dirname, "user_excels", "user_data.xlsx");
+    if (!fs.existsSync(excelFilePath)) {
+      // Create a new workbook
+      const workbook = new excel.Workbook();
+      // Add a worksheet
+      const worksheet = workbook.addWorksheet("Users");
+      // Add headers
+      worksheet.addRow([
+        "Name",
+        "Email",
+        "Phone",
+        "Role",
+        "Gender",
+        "DOB",
+        "Qrcode",
+      ]);
+      // Save the workbook
+      await workbook.xlsx.writeFile(excelFilePath);
+    }
+
+    // Add user data to the Excel file
+    const workbook = new excel.Workbook();
+    await workbook.xlsx.readFile(excelFilePath);
+    let worksheet = workbook.getWorksheet("Users");
+
+    // If worksheet doesn't exist, create one
+    if (!worksheet) {
+      worksheet = workbook.addWorksheet("Users");
+      worksheet.addRow([
+        "Name",
+        "Email",
+        "Phone",
+        "Role",
+        "Gender",
+        "DOB",
+        "Qrcode",
+      ]);
+    }
+
+    // Add user data
+    worksheet.addRow([name, email, phone, role, gender, dob, qrfilePath]);
+
+    // Save the workbook
+    await workbook.xlsx.writeFile(excelFilePath);
+
+    resp.json({
+      message: "Data created successfully",
+      qrCode: code,
+    });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    resp.status(500).json({ message: "Internal server error" });
+  }
+
+  next();
+};
+const registerUserSvgQrcode = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  // Validation rules
+  const validationRules = [
+    body("email").isEmail().withMessage("Email is required"),
+    body("phone").isLength({ min: 10 }).withMessage("Phone is required"),
+    body("password").isLength({ min: 5 }).withMessage("Password is required"),
+    body("role").not().isEmpty().withMessage("Role is required"),
+    body("gender").not().isEmpty().withMessage("Gender is required"),
+    body("dob").not().isEmpty().withMessage("DOB is required"),
+    body("name").not().isEmpty().withMessage("Name is required"),
+  ];
+
+  // Apply validation rules
+  await Promise.all(validationRules.map((validation) => validation.run(req)));
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    resp.status(400).json({ errors: errors.array() });
+    return;
+  }
+
+  const { email, phone, password, role, gender, dob, name } =
+    req.body as RegistrationData;
+
+  try {
+    // Check if the email or phone already exists
+    const existingUser = await UsersvgModel.findOne({
+      $or: [{ email }, { phone }],
+    });
+    if (existingUser) {
+      resp
+        .status(400)
+        .json({ message: "Email or phone number already exists." });
+      return;
+    }
+
+    // Generate SVG QR code
+    const svgQRCode = await generateQRCodeSVG({ email, phone, name });
+
+    // Create a new user if not already exists
+    const data = await UsersvgModel.create({
+      email,
+      phone,
+      password,
+      role,
+      gender,
+      dob,
+      name,
+      qrCode: svgQRCode,
+    });
+
+    resp.json({ message: "Data created successfully", data });
+  } catch (error: any) {
+    console.error("Error creating user:", error);
+
+    if (
+      error.code === 11000 ||
+      error.name === "MongoError" ||
+      error.code === 11001
+    ) {
+      resp
+        .status(400)
+        .json({ message: "Email or phone number already exists." });
+    }
+
+    resp.status(500).json({ message: "Internal server error" });
+  }
+
+  next();
+};
 const ShowUserList = async (
   req: express.Request,
   resp: express.Response,
@@ -338,28 +583,37 @@ function convertToObject(data: any) {
               .map((item: string) => item.trim());
           } else if (currentKey === "yearly") {
             nested[currentKey] = parseInt(data[key], 10);
-          } else if (currentKey === "panels") {
-            const panelData = data[key].split(/\r?\n/);
-            nested[currentKey] = panelData.map((panel: string) => {
-              const panelInfo = panel.split("|");
-              return {
-                modelName: panelInfo[0].trim(),
-                manufacturer: panelInfo[1].trim(),
-                moduleType: panelInfo[2].trim(),
-                panelCount: panelInfo[3].trim(),
-                serialNumber: panelInfo[4].trim(),
-                registrationNumber: panelInfo[5].trim(),
-                productId: panelInfo[6].trim(),
-                monthlySolarAccess: panelInfo[7]
-                  .split(",")
-                  .map((item: string) => item.trim()),
-                arrayOrientation: {
-                  orientation: panelInfo[8].trim(),
-                  tilt: panelInfo[9].trim(),
-                  azimuth: panelInfo[10].trim(),
-                },
-              };
-            });
+          } else if (currentKey === "devices") {
+            const deviceTypes = [
+              "evChargers",
+              "meters",
+              "panels",
+              "batteries",
+              "inverters",
+              "optimizers",
+            ];
+
+            for (const deviceType of deviceTypes) {
+              const deviceData = data[key][deviceType];
+
+              if (deviceData && deviceData.modelName) {
+                const modelNames = deviceData.modelName.split(/\r?\n/);
+                const manufacturers = deviceData.manufacturer.split(/\r?\n/);
+                const productIds = deviceData.productId.split(/\r?\n/);
+
+                if (!nested[currentKey][deviceType]) {
+                  nested[currentKey][deviceType] = [];
+                }
+
+                for (let j = 0; j < modelNames.length; j++) {
+                  nested[currentKey][deviceType].push({
+                    modelName: modelNames[j].trim(),
+                    manufacturer: manufacturers[j]?.trim() ?? "",
+                    productId: productIds[j]?.trim() ?? "",
+                  });
+                }
+              }
+            }
           } else {
             nested[currentKey] = data[key];
           }
@@ -370,22 +624,6 @@ function convertToObject(data: any) {
       }
     }
   }
-  // // Check if evChargers is an object, if so, convert it to an array
-  // if (
-  //   result.devices &&
-  //   result.devices.evChargers &&
-  //   typeof result.devices.evChargers === "object"
-  // ) {
-  //   result.devices.evChargers = [result.devices.evChargers];
-  // } else if (
-  //   result.devices &&
-  //   result.devices.panels &&
-  //   Array.isArray(result.devices.panels) &&
-  //   result.devices.panels.length === 1 &&
-  //   typeof result.devices.panels[0] === "object"
-  // ) {
-  //   result.devices.panels = result.devices.panels[0];
-  // }
 
   return result;
 }
@@ -397,9 +635,12 @@ const ReadExceldata = async (
 ): Promise<void> => {
   try {
     const workbook = XLSX.readFile("tpo-asset-bulk-upload.xlsx");
-    const sheetName = workbook.SheetNames[0]; // assuming data is in the first sheet
+    const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(sheet, { raw: false });
+    const jsonData = XLSX.utils.sheet_to_json(sheet, {
+      raw: false,
+      defval: "",
+    });
     const finalItems = jsonData.map((item) => {
       return convertToObject(item);
     });
@@ -413,6 +654,35 @@ const ReadExceldata = async (
   } catch (error) {
     console.error("Error fetching user list:", error);
     resp.status(500).json({ message: "Internal Server Error" });
+    next(error);
+  }
+};
+const WriteExcelData = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  try {
+    const jsonData = req.body.data;
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(jsonData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+    const excelBuffer = XLSX.write(workbook, {
+      type: "buffer",
+      bookType: "xlsx",
+    });
+
+    resp.setHeader("Content-Disposition", "attachment; filename=export.xlsx");
+    resp.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    // Send the Excel file buffer as the response
+    resp.send(excelBuffer);
+  } catch (error) {
+    console.error("Error writing Excel file:", error);
+    resp.status(500).json({ message: "Error writing Excel file" });
     next(error);
   }
 };
@@ -450,18 +720,66 @@ const ReadExceldatadynamically = async (
         const workbook = XLSX.read(req.file.buffer);
         const sheetName = workbook.SheetNames[0]; // assuming data is in the first sheet
         const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(sheet, { raw: false });
-
+        const jsonData = XLSX.utils.sheet_to_json(sheet, {
+          raw: false,
+          defval: "",
+        });
+        const finalItems = jsonData.map((item) => {
+          return convertToObject(item);
+        });
         // Print JSON data
         console.log("Excel data:", jsonData);
         resp.json({
           message: "File uploaded and Excel data read successfully",
-          data: jsonData,
+          data: finalItems,
         });
       } catch (readError) {
         console.error("Error reading Excel file:", readError);
         resp.status(500).json({ message: "Error reading Excel file" });
       }
+    });
+  } catch (error) {
+    console.error("Error handling file upload:", error);
+    resp.status(500).json({ message: "Internal Server Error" });
+    next(error);
+  }
+};
+
+const ReadCSVDataDynamically = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  try {
+    const upload = multer();
+
+    upload.single("csvFile")(req, resp, (err: any) => {
+      if (err) {
+        // Multer or file upload error
+        console.error("File upload error:", err);
+        resp.status(400).json({ message: "File upload error" });
+        return;
+      }
+      if (!req.file) {
+        // No file uploaded
+        resp.status(400).json({ message: "No file uploaded" });
+        return;
+      }
+
+      // File uploaded successfully
+      console.log("File uploaded:", req.file);
+
+      // Read the uploaded CSV file
+      csvtojson()
+        .fromString(req.file.buffer.toString()) // Convert buffer to string and parse CSV
+        .then((jsonData: any) => {
+          // Print JSON data
+          console.log("CSV data:", jsonData);
+          resp.json({
+            message: "File uploaded and CSV data read successfully",
+            data: jsonData,
+          });
+        });
     });
   } catch (error) {
     console.error("Error handling file upload:", error);
@@ -479,4 +797,8 @@ export default {
   ExportPdf,
   ReadExceldata,
   ReadExceldatadynamically,
+  ReadCSVDataDynamically,
+  WriteExcelData,
+  registerUserDataQr,
+  registerUserSvgQrcode,
 };

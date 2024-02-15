@@ -18,7 +18,6 @@ interface IssuedBook extends Document {
   numberOfDays: number;
 }
 
-// Define the schema for the IssuedBook model
 const IssuedBookSchema = new Schema({
   bookId: {
     type: String,

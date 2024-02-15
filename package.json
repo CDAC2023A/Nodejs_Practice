@@ -30,6 +30,7 @@
     "mysql": "^2.18.1",
     "mysql2": "^3.6.5",
     "nodemailer": "^6.9.8",
+    "qrcode": "^1.5.3",
     "simple-encryptor": "^4.0.0",
     "twilio": "^5.0.0-rc.1"
   }
