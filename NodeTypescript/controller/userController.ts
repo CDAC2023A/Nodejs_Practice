@@ -5,6 +5,7 @@ import { RegistrationData, LoginData } from "../Interfces/userReges"; // Adjust 
 import userRegistration from "../models/userRegestrationModel";
 import UserQrModel, { User } from "../models/userRegesQr";
 import UsersvgModel from "../models/userregQrsvg";
+import UserImagemodel from "../models/userRegesImage";
 import verifyToken from "../token/jwtToken";
 import fs from "fs";
 import qr from "qrcode";
@@ -86,23 +87,7 @@ const registerUserData = async (
 
   next();
 };
-export const generateQRCode = async (
-  qrCodeText: string,
-  qrCodeFilePath: string
-): Promise<void> => {
-  try {
-    // Generate QR code
-    const qrCodeBuffer = await qr.toBuffer(qrCodeText);
 
-    // Save QR code image to file
-    await fs.promises.writeFile(qrCodeFilePath, qrCodeBuffer);
-
-    console.log("QR code generated successfully");
-  } catch (error) {
-    console.error("Error generating QR code:", error);
-    throw new Error("Failed to generate QR code");
-  }
-};
 const registerUserDataQr = async (
   req: express.Request,
   resp: express.Response,
@@ -326,6 +311,113 @@ const registerUserSvgQrcode = async (
 
   next();
 };
+// Set up multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Set the destination folder for storing uploads
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname); // Set a unique filename for the uploaded file
+  },
+});
+const upload = multer({ storage: storage });
+const registerUserprofile = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  // Multer middleware to handle file uploads
+  upload.single("image")(req, resp, async (err: any) => {
+    if (err) {
+      console.error("Error uploading image:", err);
+      resp.status(500).json({ message: "Internal server error" });
+      return;
+    }
+
+    // Validation rules for other form data
+    const validationRules = [
+      body("email").isEmail().withMessage("Email is required"),
+      body("phone").isLength({ min: 10 }).withMessage("Phone is required"),
+      body("password").isLength({ min: 5 }).withMessage("Password is required"),
+      body("role").not().isEmpty().withMessage("Role is required"),
+      body("gender").not().isEmpty().withMessage("Gender is required"),
+      body("dob").not().isEmpty().withMessage("DOB is required"),
+      body("name").not().isEmpty().withMessage("Name is required"),
+    ];
+
+    // Apply validation rules for other form data
+    await Promise.all(validationRules.map((validation) => validation.run(req)));
+
+    // Check for validation errors for other form data
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      resp.status(400).json({ errors: errors.array() });
+      return;
+    }
+
+    const { email, phone, password, role, gender, dob, name } = req.body as {
+      email: string;
+      phone: number;
+      password: string;
+      role: string;
+      gender: string;
+      dob: string;
+      name: string;
+    };
+
+    try {
+      // Check if the email or phone already exists
+      const existingUser = await UserImagemodel.findOne({
+        $or: [{ email }, { phone }],
+      });
+
+      if (existingUser) {
+        resp
+          .status(400)
+          .json({ message: "Email or phone number already exists." });
+        return;
+      }
+
+      const image = req.file; // Get the uploaded image file
+      if (!image) {
+        resp.status(400).json({ message: "Image is required." });
+        return;
+      }
+
+      // Create a new user with image
+      const data = await UserImagemodel.create({
+        email,
+        phone,
+        password,
+        role,
+        gender,
+        dob,
+        name,
+        image: image.filename, // Assuming you're saving the filename in the database
+      });
+
+      resp.json({ message: "Data created successfully", data });
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+
+      if (
+        error.code === 11000 ||
+        error.name === "MongoError" ||
+        error.code === 11001
+      ) {
+        resp
+          .status(400)
+          .json({ message: "Email or phone number already exists." });
+        return;
+      }
+
+      resp.status(500).json({ message: "Internal server error" });
+    }
+
+    next();
+  });
+};
+
 const ShowUserList = async (
   req: express.Request,
   resp: express.Response,
@@ -801,4 +893,5 @@ export default {
   WriteExcelData,
   registerUserDataQr,
   registerUserSvgQrcode,
+  registerUserprofile,
 };

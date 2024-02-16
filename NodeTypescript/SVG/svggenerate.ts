@@ -1,5 +1,4 @@
 import qr from "qrcode";
-import sharp from "sharp";
 import fs from "fs/promises";
 
 // Function to generate SVG QR code from user data

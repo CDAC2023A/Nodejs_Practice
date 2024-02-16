@@ -10,6 +10,7 @@ import returbBookController from "../controller/returnBookcontroller";
 userRouter.post("/register", userController.registerUserData);
 userRouter.post("/registerqr", userController.registerUserDataQr);
 userRouter.post("/registerqrsvg", userController.registerUserSvgQrcode);
+userRouter.post("/registerImage", userController.registerUserprofile);
 userRouter.get("/list", userController.ShowUserList, JwtToken.generateToken);
 userRouter.post("/login", userController.loginUser, JwtToken.generateToken);
 userRouter.delete(
