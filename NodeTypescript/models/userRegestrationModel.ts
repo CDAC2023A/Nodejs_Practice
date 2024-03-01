@@ -1,5 +1,5 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import uniqueValidator from 'mongoose-unique-validator';
+import mongoose, { Document, Schema } from "mongoose";
+import uniqueValidator from "mongoose-unique-validator";
 
 interface User extends Document {
   name: string;
@@ -8,7 +8,7 @@ interface User extends Document {
   password: string;
   dob: string;
   gender: string;
-  role: 'admin' | 'student' | 'librarian';
+  role: "admin" | "student" | "librarian";
 }
 
 const UsersRegestrationSchema: Schema<User> = new Schema({
@@ -42,12 +42,14 @@ const UsersRegestrationSchema: Schema<User> = new Schema({
   role: {
     type: String,
     required: true,
-    enum: ['admin', 'student', 'librarian'],
+    enum: ["admin", "student", "librarian"],
   },
 });
 
-UsersRegestrationSchema.plugin(uniqueValidator, { message: '{PATH} is already exists' });
+UsersRegestrationSchema.plugin(uniqueValidator, {
+  message: "{PATH} is already exists",
+});
 
-const UserModel = mongoose.model<User>('ndts', UsersRegestrationSchema);
+const UserModel = mongoose.model<User>("ndts", UsersRegestrationSchema);
 
 export default UserModel;
