@@ -9,6 +9,7 @@ axios
   )
   .then((response) => {
     wordList = response.data.split("\n");
+    //console.log(wordList);
   })
   .catch((error) => {
     console.error("Error fetching word list:", error);
@@ -23,7 +24,11 @@ app.get("/", (req, res) => {
 
   const filteredWords = wordList.filter((word) => word.startsWith(stem));
 
-  res.json(filteredWords);
+  if (filteredWords.length === 0) {
+    return res.json(wordList);
+  } else {
+    res.json(filteredWords);
+  }
 });
 
 const PORT = process.env.PORT || 3000;
