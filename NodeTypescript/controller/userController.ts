@@ -18,6 +18,11 @@ import path from "path";
 import pdf from "pdfkit";
 import excel from "exceljs";
 import generateQRCodeSVG from "../SVG/svggenerate";
+import UserModel from "../models/userRegestrationModel";
+import OTPModel from "../models/otpModel";
+import otpGenerator from "otp-generator";
+import twilio from "twilio";
+import dotenv from "dotenv";
 
 const registerUserData = async (
   req: express.Request,
@@ -385,7 +390,7 @@ const registerUserprofile = async (
       }
 
       // Create a new user with image
-      const data = await UserImagemodel.create({
+      const data = await UserModel.create({
         email,
         phone,
         password,
@@ -879,6 +884,44 @@ const ReadCSVDataDynamically = async (
     next(error);
   }
 };
+
+const generateOtp = async (
+  req: express.Request,
+  resp: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
+  try {
+    const { mobileNumber } = req.body;
+    // Initialize Twilio client
+    const accountSid = "AC646e593bacca8bb167462031d0c40f62";
+    const authToken = "5226920a687c9fbe6c7362138250a7e7";
+    const client = twilio(accountSid, authToken);
+    // Generate a 6-digit OTP using numbers only
+    const otp = otpGenerator.generate(6, { digits: true });
+
+    // Save OTP to the database
+    const otpDoc = new OTPModel({
+      mobileNumber,
+      otp,
+    });
+
+    await otpDoc.save(); // Corrected: save should be called on model instance, not schema
+
+    // Send OTP to the mobile number using Twilio
+    await client.messages.create({
+      body: `Your OTP is: ${otp}`,
+      from: "+1 484 365 2550",
+      to: mobileNumber,
+    });
+    console.log(`OTP for ${mobileNumber}: ${otp}`);
+
+    resp.status(200).json({ message: "OTP sent successfully" });
+  } catch (error) {
+    console.error("Error handling file upload:", error);
+    resp.status(500).json({ message: "Internal Server Error" });
+    next(error);
+  }
+};
 export default {
   registerUserData,
   ShowUserList,
@@ -894,4 +937,5 @@ export default {
   registerUserDataQr,
   registerUserSvgQrcode,
   registerUserprofile,
+  generateOtp,
 };

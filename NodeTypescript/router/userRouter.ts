@@ -89,4 +89,5 @@ userRouter.post(
   returbBookController.returnBook,
   JwtToken.verifyToken
 );
+userRouter.post("/sendOtp", userController.generateOtp);
 export default userRouter;
